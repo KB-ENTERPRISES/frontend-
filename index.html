@@ -3163,7 +3163,16 @@ function renderPlaceOrder(el) {
       </div>
 
       <!-- Right Column: Order Details & Checkout -->
-      <div class="checkout-section">
+      <div class="checkout-section" style="position:relative;">
+        ${currentRole === 'guest' ? `
+          <div onclick="toast('Please sign in or sign up to continue', 'err'); showAuthPage('user');" 
+               style="position:absolute; inset:0; z-index:100; cursor:pointer; border-radius:12px; background:var(--bg); opacity:0.85; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+            <div class="card" style="padding:20px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.1); border:1px solid var(--border); opacity:1;">
+               <strong style="color:var(--text); font-size:16px;">Sign In Required</strong>
+               <div class="small muted" style="margin-top:6px;">Click here to login or sign up</div>
+            </div>
+          </div>
+        ` : ''}
         <!-- Order Type / Delivery Option -->
         <div class="card mb-16" style="padding: 24px;">
           <div class="card-header" style="margin-bottom: 12px;">
@@ -3244,41 +3253,6 @@ function renderPlaceOrder(el) {
   buildProductGrid();
   updateMobileOrderBar(0, 0);
   attachTrainAutocomplete();
-
-  if (currentRole === 'guest') {
-    setTimeout(() => {
-      const fields = [
-        'po-name', 'po-trainname', 'po-trainno', 'po-location', 'po-eta-display',
-        'po-stallperson', 'po-stallname', 'po-stalllocation', 'submit-btn',
-        'ot-train', 'ot-stall'
-      ];
-      fields.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        if (el.tagName === 'INPUT') el.readOnly = true;
-        
-        const intercept = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          toast('Please Sign in or Sign up to place an order', 'err');
-          showAuthPage('user');
-        };
-        el.addEventListener('click', intercept, true);
-        el.addEventListener('focus', intercept, true);
-        el.addEventListener('mousedown', intercept, true);
-      });
-      
-      const grid = document.getElementById('product-grid');
-      if (grid) {
-        grid.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          toast('Please Sign in or Sign up to place an order', 'err');
-          showAuthPage('user');
-        }, true);
-      }
-    }, 50);
-  }
 }
 
 function renderHome(el) {
