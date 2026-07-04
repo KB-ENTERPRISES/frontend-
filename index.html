@@ -379,6 +379,59 @@ textarea { resize: vertical; min-height: 64px; }
 .form-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 520px) { .form-row { grid-template-columns: 1fr; } }
 
+.password-field {
+  position: relative;
+}
+.password-field input {
+  padding-right: 46px;
+}
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  box-shadow: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.password-toggle:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  transform: translateY(-50%);
+}
+.password-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.password-toggle.is-visible::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transform: rotate(-45deg);
+}
+
 .eta-wrap { position: relative; }
 .eta-wrap input[type="text"] { padding-right: 44px; }
 .eta-ampm-badge {
@@ -1057,14 +1110,15 @@ textarea { resize: vertical; min-height: 64px; }
 
 .landing-portal-card {
   background: var(--surface);
-  border: 1px solid rgba(255, 56, 92, 0.12);
-  border-radius: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   padding: 28px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   position: relative;
   overflow: hidden;
+  box-shadow: var(--shadow);
 }
 
 .landing-portal-card::after {
@@ -1090,15 +1144,8 @@ textarea { resize: vertical; min-height: 64px; }
   box-shadow: 0 8px 22px rgba(255,56,92,0.22);
 }
 
-.landing-portal-card::after {
-  content: '';
-  position: absolute;
-  top: -30px;
-  right: -30px;
-  width: 120px;
-  height: 120px;
-  background: rgba(255, 56, 92, 0.18);
-  border-radius: 50%;
+body.dark-theme .landing-portal-card::after {
+  background: rgba(255, 56, 92, 0.1);
 }
 
 .landing-portal-card h3 {
@@ -1173,7 +1220,7 @@ textarea { resize: vertical; min-height: 64px; }
   border-color: rgba(255, 56, 92, 0.12);
 }
 .product-tile.selected {
-  background: linear-gradient(135deg, var(--surface) 0%, rgba(255, 56, 92, 0.06) 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, rgba(255, 56, 92, 0.06) 100%);
   border-color: var(--accent);
   box-shadow: 0 8px 24px rgba(255, 56, 92, 0.10);
 }
@@ -1286,11 +1333,33 @@ table.dt tbody tr:hover td { background: var(--bg); }
 .offline-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--border-md); margin-right: 6px; }
 
 /* ─── Notification list ─── */
-.notif-item { padding: 14px 16px; border-bottom: 1px solid var(--border); transition: background 0.15s ease; }
+.notif-item {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
 .notif-item:last-child { border-bottom: none; }
 .notif-msg  { font-size: 13px; color: var(--text-2); line-height: 1.5; }
 .notif-ts   { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
-.notif-item.unread { background: #EFF6FF; border-left: 3px solid var(--accent); padding-left: 13px; margin-bottom: 4px; border-radius: 4px; }
+.notif-item.unread {
+  background: rgba(255, 56, 92, 0.08);
+  border-left: 3px solid var(--accent);
+  padding-left: 13px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+}
+.notif-item.unread .notif-msg {
+  color: var(--text);
+  font-weight: 600;
+}
+.notif-item:hover {
+  background: var(--surface-2);
+}
+body.dark-theme .notif-item.unread {
+  background: rgba(255, 56, 92, 0.14);
+}
 
 .upload-zone { border: 2px dashed var(--border-md); border-radius: var(--radius); padding: 32px 20px; text-align: center; cursor: pointer; position: relative; transition: all .15s; background: var(--bg); }
 .upload-zone:hover { border-color: var(--accent); background: #EFF6FF; }
@@ -1865,6 +1934,20 @@ input:focus, select:focus, textarea:focus {
 .filter-pill.active {
   background: var(--accent); color: var(--accent-fg); border-color: var(--accent);
   box-shadow: 0 4px 12px rgba(255, 56, 92, 0.22);
+}
+.settings-theme-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.settings-theme-actions .btn {
+  flex: 1 1 160px;
+}
+@media (max-width: 520px) {
+  .settings-theme-actions {
+    flex-direction: column;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
@@ -1935,27 +2018,32 @@ input:focus, select:focus, textarea:focus {
         <button class="auth-tab" onclick="setAuthMode('signup')">Sign Up</button>
       </div>
      <div id="pane-signin" class="auth-form-pane active">
-        <form onsubmit="return false;">
+        <form onsubmit="loginAs('user'); return false;">
         <div class="form-group">
           <label>Email address</label>
           <input type="email" id="u-email" placeholder="you@gmail.com" autocomplete="email">
         </div>
         <div class="form-group">
           <label>Password</label>
-          <input type="password" id="u-pass" placeholder="Enter your password" autocomplete="current-password">
+          <div class="password-field">
+            <input type="password" id="u-pass" placeholder="Enter your password" autocomplete="current-password">
+            <button type="button" class="password-toggle" onclick="togglePasswordVisibility('u-pass', this)" aria-label="Show password" title="Show password">
+              <svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-full" onclick="loginAs('user')">Sign In</button>
+        <button type="submit" class="btn btn-primary btn-full">Sign In</button>
         </form>
         <p class="auth-help">Don't have an account? <a href="#" onclick="setAuthMode('signup');return false;" style="color:var(--text);text-decoration:underline;">Sign up</a></p>
       </div>
       <div id="pane-signup" class="auth-form-pane">
-        <form onsubmit="return false;">
+        <form onsubmit="signupAs(); return false;">
         <div class="form-row">
           <div class="form-group"><label>First name</label><input type="text" id="u-fname" placeholder="Ravi"></div>
           <div class="form-group"><label>Last name</label><input type="text" id="u-lname" placeholder="Kumar"></div>
         </div>
         <div class="form-group"><label>Email address</label><input type="email" id="u-semail" placeholder="you@gmail.com" autocomplete="email"></div>
-        <div class="form-group"><label>Password</label><input type="password" id="u-spass" placeholder="Create a password (min 6 chars)" autocomplete="new-password"></div>
+        <div class="form-group"><label>Password</label><div class="password-field"><input type="password" id="u-spass" placeholder="Create a password (min 6 chars)" autocomplete="new-password"><button type="button" class="password-toggle" onclick="togglePasswordVisibility('u-spass', this)" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></div></div>
         <div class="form-group">
           <label>Role</label>
           <select id="u-srole">
@@ -1963,7 +2051,7 @@ input:focus, select:focus, textarea:focus {
             <option value="pantry">Pantry Coordinator</option>
           </select>
         </div>
-        <button type="submit" class="btn btn-primary btn-full" onclick="signupAs()">Create Account</button>
+        <button type="submit" class="btn btn-primary btn-full">Create Account</button>
         </form>
         <p class="auth-help">Already have an account? <a href="#" onclick="setAuthMode('signin');return false;" style="color:var(--text);text-decoration:underline;">Sign in</a></p>
       </div>
@@ -1975,7 +2063,7 @@ input:focus, select:focus, textarea:focus {
         <div class="card-title">Crew Sign In</div>
         <div class="card-subtitle">Select your profile and enter your PIN</div>
       </div>
-      <form onsubmit="return false;">
+      <form onsubmit="loginAs('crew'); return false;">
       <input type="text" autocomplete="username" value="crew" style="position:absolute;left:-9999px" aria-hidden="true" tabindex="-1">
       <div class="form-group">
         <label>Crew Member</label>
@@ -1986,9 +2074,14 @@ input:focus, select:focus, textarea:focus {
       </div>
       <div class="form-group">
         <label>PIN</label>
-        <input type="password" id="c-pin" placeholder="6-digit PIN" maxlength="6" autocomplete="current-password" inputmode="numeric">
+        <div class="password-field">
+          <input type="password" id="c-pin" placeholder="6-digit PIN" maxlength="6" autocomplete="current-password" inputmode="numeric">
+          <button type="button" class="password-toggle" onclick="togglePasswordVisibility('c-pin', this)" aria-label="Show PIN" title="Show PIN">
+            <svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
       </div>
-      <button type="submit" class="btn btn-primary btn-full" onclick="loginAs('crew')">Sign In</button>
+      <button type="submit" class="btn btn-primary btn-full">Sign In</button>
       </form>
     </div>
 
@@ -2001,10 +2094,10 @@ input:focus, select:focus, textarea:focus {
         <div class="card-title">Admin Sign In</div>
         <div class="card-subtitle">Restricted access — administrators only</div>
       </div>
-      <form onsubmit="return false;">
+      <form onsubmit="loginAs('admin'); return false;">
       <div class="form-group"><label>Admin email</label><input type="email" id="a-email" placeholder="admin@kbenterprises.in" autocomplete="email"></div>
-      <div class="form-group"><label>Password</label><input type="password" id="a-pass" placeholder="Enter password" autocomplete="current-password"></div>
-      <button type="submit" class="btn btn-primary btn-full" onclick="loginAs('admin')">Sign In</button>
+      <div class="form-group"><label>Password</label><div class="password-field"><input type="password" id="a-pass" placeholder="Enter password" autocomplete="current-password"><button type="button" class="password-toggle" onclick="togglePasswordVisibility('a-pass', this)" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></div></div>
+      <button type="submit" class="btn btn-primary btn-full">Sign In</button>
       </form>
     </div>
     </div>
@@ -2156,7 +2249,7 @@ const TRAIN_LOOKUP = [
   { name: 'Chennai Egmore - Nagercoil Vande Bharat Express', number: '20627', aliases: ['20627', 'chennai egmore', 'nagercoil'] }
 ];
 
-const TRAIN_LOOKUP_KEY = 'kb_train_lookup';
+const TRAIN_LOOKUP_KEY = 'train_lookup';
 
 function normalizeTrainText(text) {
   return (text || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -2505,6 +2598,18 @@ function setAuthMode(mode) {
   document.getElementById('pane-signup').classList.toggle('active', mode === 'signup');
 }
 
+function togglePasswordVisibility(inputId, button) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  const fieldName = inputId === 'c-pin' ? 'PIN' : 'password';
+  const label = `${isHidden ? 'Hide' : 'Show'} ${fieldName}`;
+  button.setAttribute('aria-label', label);
+  button.setAttribute('title', label);
+  button.classList.toggle('is-visible', isHidden);
+}
+
 /* ════════════════════════════════════════════════════════
    SIGN UP
 ════════════════════════════════════════════════════════ */
@@ -2521,8 +2626,8 @@ async function signupAs() {
       method: 'POST',
       body: JSON.stringify({ firstName: fname, lastName: lname, email, password: pass, role })
     });
-    currentUser = data;
-    sessionStorage.setItem('currentUser', JSON.stringify(data));
+    currentUser = { ...data, email: data.email || email };
+    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
     await loadCrew();
     launchApp();
     resumeGuestIntent();
@@ -2553,8 +2658,8 @@ async function loginAs(role) {
         toast('Access denied. This login is for administrators only.', 'err');
         return;
       }
-      currentUser = data;
-      sessionStorage.setItem('currentUser', JSON.stringify(data));
+      currentUser = { ...data, email: data.email || email };
+      sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
     } else {
       const crewId = document.getElementById('c-id').value;
       const pin    = document.getElementById('c-pin').value;
@@ -2626,6 +2731,7 @@ const NAV = {
     { id:'place-order',   label:'New Order',      icon:'plus'  },
     { id:'my-orders',     label:'My Orders',      icon:'order' },
     { id:'notifications', label:'Notifications',  icon:'bell'  },
+    { id:'settings',      label:'Settings',       icon:'settings' },
   ],
   crew:  [
     { id:'pending-orders',label:'Incoming Orders',icon:'inbox' },
@@ -2851,8 +2957,19 @@ function navigateTo(page, options = {}) {
 ════════════════════════════════════════════════════════ */
 let _selectedHour = null, _selectedMinute = null, _selectedAmPm = 'AM', _clockMode = 'hour';
 
-function etaHTML() {
-  return `<div class="eta-wrap" onclick="openClockPicker()">
+function requireAuthForOrder(event) {
+  if (currentUser?.token) return false;
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  toast('Please Sign in or Sign up to enter delivery details', 'err');
+  showAuthPage('user');
+  return true;
+}
+
+function etaHTML(locked = false) {
+  return `<div class="eta-wrap" onclick="${locked ? 'requireAuthForOrder(event)' : 'openClockPicker()'}">
     <input type="text" id="po-eta-display" placeholder="Select time" readonly style="cursor:pointer">
     <span class="eta-ampm-badge"></span>
   </div>`;
@@ -2863,6 +2980,7 @@ function getEta() {
 }
 
 function openClockPicker() {
+  if (requireAuthForOrder()) return;
   _clockMode = 'hour';
   _selectedHour = _selectedHour || 12;
   _selectedMinute = _selectedMinute ?? 0;
@@ -3129,6 +3247,8 @@ async function deleteProduct(id) {
 function renderPlaceOrder(el) {
   orderCart = {};
   orderType = 'train';
+  const isGuest = !currentUser?.token;
+  const lockedInputAttrs = isGuest ? 'readonly data-auth-required="true" onfocus="requireAuthForOrder(event)" onclick="requireAuthForOrder(event)"' : '';
   el.innerHTML = `
     <div class="page-header">
       <div>
@@ -3163,16 +3283,7 @@ function renderPlaceOrder(el) {
       </div>
 
       <!-- Right Column: Order Details & Checkout -->
-      <div class="checkout-section" style="position:relative;">
-        ${currentRole === 'guest' ? `
-          <div onclick="toast('Please sign in or sign up to continue', 'err'); showAuthPage('user');" 
-               style="position:absolute; inset:0; z-index:100; cursor:pointer; border-radius:12px; background:var(--bg); opacity:0.85; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
-            <div class="card" style="padding:20px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.1); border:1px solid var(--border); opacity:1;">
-               <strong style="color:var(--text); font-size:16px;">Sign In Required</strong>
-               <div class="small muted" style="margin-top:6px;">Click here to login or sign up</div>
-            </div>
-          </div>
-        ` : ''}
+      <div class="checkout-section">
         <!-- Order Type / Delivery Option -->
         <div class="card mb-16" style="padding: 24px;">
           <div class="card-header" style="margin-bottom: 12px;">
@@ -3191,27 +3302,27 @@ function renderPlaceOrder(el) {
           </div>
           <div class="form-group">
             <label>Passenger Name</label>
-            <input type="text" id="po-name" placeholder="Full name" value="${currentUser?.name || ''}">
+            <input type="text" id="po-name" placeholder="Full name" value="${currentUser?.name || ''}" ${lockedInputAttrs}>
           </div>
           <div class="form-group">
             <label>Train Name</label>
-            <input type="text" id="po-trainname" placeholder="e.g. Nellai Express" autocomplete="off">
+            <input type="text" id="po-trainname" placeholder="e.g. Nellai Express" autocomplete="off" ${lockedInputAttrs}>
             <div class="autocomplete-list hidden" id="train-suggestions"></div>
           </div>
           <div class="form-group">
             <label>Train Number</label>
-            <input type="text" id="po-trainno" placeholder="e.g. 12631" inputmode="numeric">
+            <input type="text" id="po-trainno" placeholder="e.g. 12631" inputmode="numeric" ${lockedInputAttrs}>
           </div>
           <div class="form-group small muted" id="train-autofill-note" style="margin-bottom: 8px;">
             Choose a match from the dropdown and the train number will fill automatically. You can also enter a number manually.
           </div>
           <div class="form-group">
             <label>Current Location of Train</label>
-            <input type="text" id="po-location" placeholder="e.g. Madurai Jn">
+            <input type="text" id="po-location" placeholder="e.g. Madurai Jn" ${lockedInputAttrs}>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label>Expected Arrival Time</label>
-            ${etaHTML()}
+            ${etaHTML(isGuest)}
           </div>
         </div>
 
@@ -3222,15 +3333,15 @@ function renderPlaceOrder(el) {
           </div>
           <div class="form-group">
             <label>Ordering Person Name</label>
-            <input type="text" id="po-stallperson" placeholder="Full name" value="${currentUser?.name || ''}">
+            <input type="text" id="po-stallperson" placeholder="Full name" value="${currentUser?.name || ''}" ${lockedInputAttrs}>
           </div>
           <div class="form-group">
             <label>Name of the Stall</label>
-            <input type="text" id="po-stallname" placeholder="e.g. Sharma Tea Stall">
+            <input type="text" id="po-stallname" placeholder="e.g. Sharma Tea Stall" ${lockedInputAttrs}>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label>Stall Location (Platform No / Area)</label>
-            <input type="text" id="po-stalllocation" placeholder="e.g. Platform 2, near middle staircase">
+            <input type="text" id="po-stalllocation" placeholder="e.g. Platform 2, near middle staircase" ${lockedInputAttrs}>
           </div>
         </div>
 
@@ -3253,6 +3364,36 @@ function renderPlaceOrder(el) {
   buildProductGrid();
   updateMobileOrderBar(0, 0);
   attachTrainAutocomplete();
+
+  if (!currentUser?.token) {
+    setTimeout(() => {
+      const fields = [
+        'po-name', 'po-trainname', 'po-trainno', 'po-location', 'po-eta-display',
+        'po-stallperson', 'po-stallname', 'po-stalllocation', 'submit-btn',
+        'ot-train', 'ot-stall'
+      ];
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.tagName === 'INPUT') el.readOnly = true;
+
+        const intercept = (e) => requireAuthForOrder(e);
+        el.addEventListener('click', intercept, true);
+        el.addEventListener('focus', intercept, true);
+        el.addEventListener('mousedown', intercept, true);
+      });
+
+      const grid = document.getElementById('product-grid');
+      if (grid) {
+        grid.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toast('Please Sign in or Sign up to place an order', 'err');
+          showAuthPage('user');
+        }, true);
+      }
+    }, 50);
+  }
 }
 
 function renderHome(el) {
@@ -3332,6 +3473,7 @@ function renderHome(el) {
 }
 
 function setOrderType(type) {
+  if (requireAuthForOrder()) return;
   orderType = type;
   document.getElementById('ot-train').classList.toggle('active', type === 'train');
   document.getElementById('ot-stall').classList.toggle('active', type === 'stall');
@@ -3358,22 +3500,22 @@ function buildProductGrid(filterText = '') {
     d.onclick = () => { if (!outOfStock) openQtyModal(p.id); else toast(`${escapeHtml(p.name)} is out of stock`, 'warn'); };
 
     d.innerHTML = `
-      <div class="prod-img-wrap" style="width:100%; height:110px; border-radius:10px; overflow:hidden; background:var(--surface-2); margin-bottom:12px; display:flex; align-items:center; justify-content:center; position:relative; padding: 4px;">
+      <div class="prod-img-wrap" style="position:relative; width:100%; padding-bottom:100%; border-radius:10px; overflow:hidden; background:var(--surface-2); margin-bottom:12px; display:flex; align-items:center; justify-content:center;">
         ${(p.img||p.imageUrl)
-          ? `<img src="${escapeHtml(p.img||p.imageUrl)}" alt="${escapeHtml(p.name)}" loading="lazy" style="width:100%; height:100%; object-fit:contain; display:block; transition:transform 0.3s;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display:none; position:absolute; inset:0; align-items:center; justify-content:center; font-size:32px;">${escapeHtml(p.icon||'📦')}</span>`
-          : `<span style="font-size:32px;">${escapeHtml(p.icon||'📦')}</span>`
+          ? `<img src="${escapeHtml(p.img||p.imageUrl)}" alt="${escapeHtml(p.name)}" loading="lazy" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; transition: transform 0.3s;" onerror="this.parentElement.innerHTML='<span style=&quot;font-size:32px;&quot;>${escapeHtml(p.icon||'📦')}</span>'">`
+          : `<span style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:32px;">${escapeHtml(p.icon||'📦')}</span>`
         }
-        ${qty ? `<div style="position:absolute; top:6px; right:6px; background:var(--accent); color:#fff; font-weight:bold; font-size:12px; padding:3px 8px; border-radius:999px; box-shadow:var(--shadow-sm);">${qty}</div>` : ''}
+        ${qty ? `<div class="qty-badge" style="position:absolute; top:8px; right:8px; background:var(--accent); color:#fff; font-weight:bold; font-size:12px; padding:4px 8px; border-radius:999px; box-shadow:var(--shadow-sm);">${qty}</div>` : ''}
       </div>
-      <div style="font-weight:600; font-size:14px; margin-bottom:4px; min-height:36px; display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--text);">${escapeHtml(p.name)}</div>
-      <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">${escapeHtml(p.unit)}</div>
+      <div class="prod-name" style="font-weight:600; font-size:15px; margin-bottom:4px; min-height:40px; display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--text);">${escapeHtml(p.name)}</div>
+      <div class="prod-sub" style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">${escapeHtml(p.unit)}</div>
       <div class="flex jc-sb ai-c" style="margin-top:auto; width:100%;">
-        <div style="font-weight:700; font-size:15px; color:var(--text);">₹${p.price}</div>
+        <div class="prod-price" style="font-weight:700; font-size:16px; color:var(--text);">₹${p.price}</div>
         ${outOfStock
           ? `<span class="badge badge-cancelled" style="font-size:11px;">Out of stock</span>`
           : qty
-            ? `<span class="badge badge-completed" style="font-size:11px; cursor:pointer;">✓ ${qty} added</span>`
-            : `<span style="font-size:11px; color:var(--accent); font-weight:600; cursor:pointer;">Tap to add</span>`
+            ? `<span class="badge badge-completed" style="font-size:11px;">${qty} in order</span>`
+            : `<span class="badge" style="background:var(--surface-2); color:var(--text-muted); font-size:11px;">Tap to order</span>`
         }
       </div>
     `;
@@ -3412,10 +3554,21 @@ function refreshSummary() {
   }
   let total = 0, rows = '', count = 0;
   ids.forEach(id => {
-    const p = PRODUCTS.find(x => x.id === id), qty = orderCart[id], sub = p.price * qty;
+    const p = PRODUCTS.find(x => x.id === id);
+    if (!p) {
+      delete orderCart[id];
+      return;
+    }
+    const qty = orderCart[id], sub = p.price * qty;
     total += sub; count += qty;
     rows += `<tr><td>${escapeHtml(p.name)}</td><td style="color:var(--text-muted)">× ${qty}</td><td>₹${sub}</td></tr>`;
   });
+  if (!count) {
+    body.innerHTML = '<p class="muted small">No items selected yet.</p>';
+    if (totalEl) totalEl.lastElementChild.textContent = '₹0';
+    updateMobileOrderBar(0, 0);
+    return;
+  }
   body.innerHTML = `<table class="summary-table"><tbody>${rows}</tbody></table>`;
   if (totalEl) totalEl.lastElementChild.textContent = '₹' + total;
   updateMobileOrderBar(count, total);
@@ -3460,8 +3613,13 @@ async function submitOrder() {
   if (!Object.keys(orderCart).length) { toast('Select at least one item', 'err'); return; }
   const items = Object.keys(orderCart).map(id => {
     const p = PRODUCTS.find(x => x.id === id);
+    if (!p) {
+      delete orderCart[id];
+      return null;
+    }
     return { productId: id, name: p.name, qty: Number(orderCart[id]), price: Number(p.price) };
-  });
+  }).filter(Boolean);
+  if (!items.length) { toast('Selected items are no longer available. Please choose products again.', 'err'); refreshSummary(); return; }
 
   try {
     document.getElementById('submit-btn').disabled = true;
@@ -3794,7 +3952,6 @@ async function renderCrewMgmt(el) {
       const rev  = co.filter(o => o.status === 'COMPLETED').reduce((s,o) => s + parseFloat(o.total), 0);
       const crewInitials = escapeHtml(c.initials || (c.name ? c.name[0] : ''));
       const crewName = escapeHtml(c.name);
-      const crewId = escapeHtml(String(c.crewId));
       const onlineStyle = c.online ? 'var(--green)' : 'var(--text-muted)';
       const onlineLabel = c.online ? 'Online' : 'Offline';
       const d = document.createElement('div');
@@ -3803,7 +3960,7 @@ async function renderCrewMgmt(el) {
         <div class="flex jc-sb items-c mb-12">
           <div class="flex items-c gap-12">
             <div class="crew-avatar">${crewInitials}</div>
-            <div><div class="crew-name">${crewName}</div><div class="crew-meta">${crewId}</div></div>
+            <div class="crew-name">${crewName}</div>
           </div>
           <span style="font-size:12px;color:${onlineStyle}">
             <span class="${c.online?'online-dot':'offline-dot'}"></span>${onlineLabel}
@@ -4517,23 +4674,16 @@ async function viewDailyReportDetails() {
             </thead>
             <tbody>
               ${data.orders.map(o => {
-                const itemsStr = o.items.map(i => `${escapeHtml(i.name)} (x${i.qty})`).join(', ');
-                const isStall = (o.orderType || '').toLowerCase() === 'stall';
-                
-                const tNo = o.trainNo || o.train_no || '';
-                const tName = o.trainName || o.train_name || '';
-                const sName = o.stallName || o.stall_name || tName;
-                
-                const target = isStall 
-                  ? `<span style="font-size:11px;color:var(--text-muted)">Stall</span><br>${escapeHtml(sName)}`
-                  : `${escapeHtml(tNo)}<br><span style="font-size:11px;color:var(--text-muted)">${escapeHtml(tName)}</span>`;
-                  
+                const itemsStr = (o.items || []).map(i => `${escapeHtml(i.name)} (x${i.qty})`).join(', ');
+                const orderType = (o.orderType || 'TRAIN').toUpperCase();
+                const isStall = o.orderType === 'stall';
+                const target = isStall ? escapeHtml(o.stallName || o.trainName) : `${escapeHtml(o.trainNo)} - ${escapeHtml(o.trainName)}`;
                 const statusClass = o.status === 'COMPLETED' ? 'badge-completed' : (o.status === 'ACCEPTED' ? 'badge-accepted' : 'badge-pending');
                 return `
-                  <tr onclick="openDetail('${escapeHtml(o.id)}')" style="cursor:pointer;" class="hover-row">
+                  <tr>
                     <td><strong>${escapeHtml(o.id)}</strong></td>
                     <td>${escapeHtml(o.userName)}</td>
-                    <td><span class="badge" style="background:var(--surface-2); color:var(--text); font-size:11px;">${(o.orderType || 'TRAIN').toUpperCase()}</span></td>
+                    <td><span class="badge" style="background:var(--surface-2); color:var(--text); font-size:11px;">${orderType}</span></td>
                     <td>${target}</td>
                     <td style="font-size:12px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(itemsStr)}">${escapeHtml(itemsStr)}</td>
                     <td><strong>₹${o.total}</strong></td>
@@ -4602,24 +4752,20 @@ async function viewDailyReportDetails() {
           <div style="font-size:24px; font-weight:800; color:var(--text); margin-top:8px;">${data.productsCreated ? data.productsCreated.length : 0}</div>
         </div>
       </div>
-      
-      <div style="display:grid; grid-template-columns: 2fr 1fr; gap:16px; align-items: start;">
-        <div class="card" style="padding:20px;">
-          <div class="card-title" style="margin-bottom:16px;">Orders Log</div>
-          ${ordersHtml}
-        </div>
-        
-        <div style="display:flex; flex-direction:column; gap:16px;">
-          <div class="card" style="padding:20px;">
-            <div class="card-title" style="margin-bottom:12px; font-size:15px;">Products Ordered Today</div>
-            ${productsOrderedHtml}
-          </div>
-          
-          <div class="card" style="padding:20px;">
-            <div class="card-title" style="margin-bottom:12px; font-size:15px;">New Products Added Today</div>
-            ${productsAddedHtml}
-          </div>
-        </div>
+
+      <div class="card" style="padding:20px;">
+        <div class="card-title" style="margin-bottom:16px;">Orders Log</div>
+        ${ordersHtml}
+      </div>
+
+      <div class="card" style="padding:20px; margin-top:16px;">
+        <div class="card-title" style="margin-bottom:12px; font-size:15px;">Products Ordered Today</div>
+        ${productsOrderedHtml}
+      </div>
+
+      <div class="card" style="padding:20px; margin-top:16px;">
+        <div class="card-title" style="margin-bottom:12px; font-size:15px;">New Products Added Today</div>
+        ${productsAddedHtml}
       </div>
     `;
   } catch (err) {
@@ -4629,7 +4775,7 @@ async function viewDailyReportDetails() {
 
 function renderSettings(el) {
   const isDark = document.body.classList.contains('dark-theme');
-  const userIdentifier = currentUser ? (currentUser.email || `Crew ID: ${currentUser.crewId || currentUser.id}`) : 'Not logged in';
+  const userIdentifier = currentUser ? (currentUser.email || currentUser.name || `Crew ID: ${currentUser.crewId || currentUser.id}`) : 'Not logged in';
   
   el.innerHTML = `
     <div class="page-header">
@@ -4647,11 +4793,11 @@ function renderSettings(el) {
       </div>
       <div class="form-group mb-24">
         <label style="font-weight: 600; display: block; margin-bottom: 8px;">Theme Settings</label>
-        <div style="display: flex; gap: 12px; margin-top: 8px;">
-          <button class="btn ${!isDark ? 'btn-primary' : 'btn-outline'}" id="theme-btn-light" onclick="setThemePreference('light')" style="flex: 1;">
+        <div class="settings-theme-actions">
+          <button class="btn ${!isDark ? 'btn-primary' : 'btn-outline'}" id="theme-btn-light" onclick="setThemePreference('light')">
             ☀️ Light Theme
           </button>
-          <button class="btn ${isDark ? 'btn-primary' : 'btn-outline'}" id="theme-btn-dark" onclick="setThemePreference('dark')" style="flex: 1;">
+          <button class="btn ${isDark ? 'btn-primary' : 'btn-outline'}" id="theme-btn-dark" onclick="setThemePreference('dark')">
             🌙 Dark Theme
           </button>
         </div>
