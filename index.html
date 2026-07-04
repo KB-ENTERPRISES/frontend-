@@ -4556,33 +4556,6 @@ function printReceipt() {
   downloadReceipt(el, filename);
 }
 
-async function downloadOrderReceiptFromReport(o) {
-  if (!o || !o.id) {
-    toast('Order details missing.', 'err');
-    return;
-  }
-
-  if (!Array.isArray(o.items) || !o.items.length || !o.total) {
-    try {
-      const orders = await apiFetch('/orders/all');
-      const fullOrder = orders.find(x => x.id === o.id);
-      if (fullOrder) {
-        o = fullOrder;
-      } else {
-        toast('Order not found in backend.', 'err');
-        return;
-      }
-    } catch (e) {
-      toast('Unable to retrieve order from server.', 'err');
-      return;
-    }
-  }
-
-  const html = receiptHTML(o);
-  downloadReceipt(html, `Receipt-${o.id}.pdf`);
-}
-
-
 /* ════════════════════════════════════════════════════════
    TOAST
 ════════════════════════════════════════════════════════ */
@@ -4755,7 +4728,7 @@ async function viewDailyReportDetails() {
                     <td><strong>₹${o.total}</strong></td>
                     <td>${escapeHtml(o.crew_name || 'Unassigned')}</td>
                     <td><span class="badge ${statusClass}">${o.status}</span></td>
-                    <td><button class="btn btn-outline" style="padding:4px 10px; font-size:11px; white-space:nowrap;" onclick="downloadOrderReceiptFromReport(${JSON.stringify(o).replace(/"/g,'&quot;')})">📄 Receipt</button></td>
+                    <td><button class="btn btn-outline" style="padding:4px 10px; font-size:11px; white-space:nowrap;" onclick="openReceipt('${escapeHtml(o.id)}')">📄 Receipt</button></td>
                   </tr>
                 `;
               }).join('')}
