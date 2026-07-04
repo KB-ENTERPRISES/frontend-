@@ -4559,21 +4559,16 @@ function downloadOrderReceiptFromReport(o) {
       </div>
     </div>`;
 
-  const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;width:650px;background:#fff;z-index:-1;';
-  wrapper.innerHTML = html;
-  document.body.appendChild(wrapper);
   toast('Downloading receipt...', 'ok');
   html2pdf().set({
     margin: 10,
     filename: `Receipt-${o.id}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  }).from(wrapper.firstElementChild).save().then(() => {
+  }).from(html, 'string').save().then(() => {
     toast('Receipt downloaded!', 'ok');
-    document.body.removeChild(wrapper);
-  }).catch(() => { toast('Download failed.', 'err'); document.body.removeChild(wrapper); });
+  }).catch(() => toast('Download failed.', 'err'));
 }
 
 
