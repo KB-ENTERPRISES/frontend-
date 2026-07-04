@@ -4551,9 +4551,30 @@ function printReceipt() {
   downloadReceipt(el, filename);
 }
 
-function downloadOrderReceiptFromReport(o) {
+async function downloadOrderReceiptFromReport(o) {
+  if (!o || !o.id) {
+    toast('Order details missing.', 'err');
+    return;
+  }
+
+  if (!Array.isArray(o.items) || !o.items.length || !o.total) {
+    try {
+      const orders = await apiFetch('/orders/all');
+      const fullOrder = orders.find(x => x.id === o.id);
+      if (fullOrder) {
+        o = fullOrder;
+      } else {
+        toast('Order not found in backend.', 'err');
+        return;
+      }
+    } catch (e) {
+      toast('Unable to retrieve order from server.', 'err');
+      return;
+    }
+  }
+
   const itemsRows = (o.items || []).map(i =>
-    `<tr><td>${i.name}</td><td style="text-align:center">${i.qty}</td><td style="text-align:right">&#8377;${(i.price * i.qty).toFixed(2)}</td></tr>`
+    `<tr><td>${escapeHtml(i.name)}</td><td style="text-align:center">${i.qty}</td><td style="text-align:right">&#8377;${(i.price * i.qty).toFixed(2)}</td></tr>`
   ).join('');
   const orderType = (o.orderType || 'TRAIN').toUpperCase();
   const isStall = o.orderType === 'stall';
@@ -4563,15 +4584,15 @@ function downloadOrderReceiptFromReport(o) {
     <div class="receipt-card" style="font-family:Arial,sans-serif;width:600px;margin:0 auto;padding:24px;border:1px solid #eee;border-radius:8px;color:#111;">
       <div class="receipt-header" style="text-align:center;margin-bottom:16px;border-bottom:1px dashed #ddd;padding-bottom:16px;">
         <div style="font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:1px;">KB Enterprises</div>
-        <div style="font-size:12px;color:#666;margin-top:4px;">${o.id}</div>
+        <div style="font-size:12px;color:#666;margin-top:4px;">${escapeHtml(o.id)}</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;font-size:13px;margin-bottom:16px;">
-        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Customer</span>${o.userName || '-'}</div>
-        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Type</span>${orderType}</div>
-        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Train / Stall</span>${target}</div>
-        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Status</span>${o.status || '-'}</div>
-        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Delivered By</span>${o.crew_name || 'Unassigned'}</div>
-        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Date</span>${o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-IN') : '-'}</div>
+        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Customer</span>${escapeHtml(o.userName || '-')}</div>
+        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Type</span>${escapeHtml(orderType)}</div>
+        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Train / Stall</span>${escapeHtml(target)}</div>
+        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Status</span>${escapeHtml(o.status || '-')}</div>
+        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Delivered By</span>${escapeHtml(o.crew_name || 'Unassigned')}</div>
+        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Date</span>${o.createdAt ? escapeHtml(new Date(o.createdAt).toLocaleDateString('en-IN')) : '-'}</div>
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;">
         <thead><tr>
@@ -4582,7 +4603,7 @@ function downloadOrderReceiptFromReport(o) {
         <tbody>${itemsRows}</tbody>
       </table>
       <div style="border-top:1px solid #111;font-weight:800;font-size:15px;padding:11px 0;display:flex;justify-content:space-between;color:#ff385c;">
-        <span>TOTAL</span><span>&#8377;${o.total}</span>
+        <span>TOTAL</span><span>&#8377;${Number(o.total).toFixed(2)}</span>
       </div>
       <div style="text-align:center;font-size:11px;color:#666;margin-top:16px;border-top:1px dashed #ddd;padding-top:12px;">
         Thank you for choosing KB Enterprises!
