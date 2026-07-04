@@ -4504,10 +4504,15 @@ function downloadReceipt(source, filename = 'Receipt.pdf') {
 
   if (typeof source === 'string') {
     targetElement = document.createElement('div');
-    targetElement.style.position = 'fixed';
-    targetElement.style.left = '-9999px';
+    targetElement.style.position = 'relative';
+    targetElement.style.left = '0';
     targetElement.style.top = '0';
     targetElement.style.width = '800px';
+    targetElement.style.maxWidth = '800px';
+    targetElement.style.margin = '0 auto';
+    targetElement.style.background = '#fff';
+    targetElement.style.padding = '0';
+    targetElement.style.display = 'block';
     targetElement.innerHTML = source;
     document.body.appendChild(targetElement);
     removeAfter = true;
