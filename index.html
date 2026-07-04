@@ -4498,6 +4498,45 @@ function outsideModal(e) { if (e.target === document.getElementById('modal-overl
 /* ════════════════════════════════════════════════════════
    PRINT RECEIPT
 ════════════════════════════════════════════════════════ */
+function downloadReceipt(source, filename = 'Receipt.pdf') {
+  let targetElement = null;
+  let removeAfter = false;
+
+  if (typeof source === 'string') {
+    targetElement = document.createElement('div');
+    targetElement.style.position = 'fixed';
+    targetElement.style.left = '-9999px';
+    targetElement.style.top = '0';
+    targetElement.style.width = '800px';
+    targetElement.innerHTML = source;
+    document.body.appendChild(targetElement);
+    removeAfter = true;
+  } else {
+    targetElement = source;
+  }
+
+  if (!targetElement) {
+    toast('Receipt not found.', 'err');
+    return Promise.reject(new Error('Receipt source missing'));
+  }
+
+  toast('Downloading receipt...', 'ok');
+  return html2pdf().set({
+    margin: 10,
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  }).from(targetElement).save().then(() => {
+    toast('Receipt downloaded!', 'ok');
+    if (removeAfter && targetElement.parentNode) targetElement.parentNode.removeChild(targetElement);
+  }).catch((err) => {
+    if (removeAfter && targetElement.parentNode) targetElement.parentNode.removeChild(targetElement);
+    toast('Download failed.', 'err');
+    throw err;
+  });
+}
+
 function printReceipt() {
   const el = document.getElementById('print-receipt');
   if (!el) return;
@@ -4509,16 +4548,7 @@ function printReceipt() {
     if (match) filename = `Receipt-${match[1]}.pdf`;
   }
 
-  toast('Downloading receipt...', 'ok');
-  html2pdf().set({
-    margin: 10,
-    filename: filename,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  }).from(el).save().then(() => {
-    toast('Receipt downloaded!', 'ok');
-  }).catch(() => toast('Download failed.', 'err'));
+  downloadReceipt(el, filename);
 }
 
 function downloadOrderReceiptFromReport(o) {
@@ -4559,16 +4589,7 @@ function downloadOrderReceiptFromReport(o) {
       </div>
     </div>`;
 
-  toast('Downloading receipt...', 'ok');
-  html2pdf().set({
-    margin: 10,
-    filename: `Receipt-${o.id}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  }).from(html, 'string').save().then(() => {
-    toast('Receipt downloaded!', 'ok');
-  }).catch(() => toast('Download failed.', 'err'));
+  downloadReceipt(html, `Receipt-${o.id}.pdf`);
 }
 
 
