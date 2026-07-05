@@ -4552,7 +4552,7 @@ function downloadReceipt(source, filename = 'Receipt.pdf') {
       html2pdf().set({
         margin: 10,
         filename: filename,
-        image: { type: 'jpeg', quality: 0.98 },
+        image: { type: 'png' },
         html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       }).from(idoc.body).save().then(() => {
