@@ -4511,10 +4511,6 @@ function downloadReceipt(source, filename = 'Receipt.pdf') {
 
   toast('Downloading receipt...', 'ok');
 
-  // Render into a fully isolated iframe with its own minimal stylesheet.
-  // This avoids handing html2canvas the app's full modern stylesheet
-  // (backdrop-filter, grid, env(), etc.) which its older parser chokes on,
-  // silently producing a blank page no matter what element is targeted.
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';
   iframe.style.left = '-99999px';
@@ -4524,7 +4520,17 @@ function downloadReceipt(source, filename = 'Receipt.pdf') {
   iframe.style.border = '0';
   document.body.appendChild(iframe);
 
-  const idoc = iframe.contentWindow.document;
+  const cleanup = () => {
+    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+  };
+
+  const idoc = iframe.contentWindow && iframe.contentWindow.document;
+  if (!idoc) {
+    cleanup();
+    toast('Download failed.', 'err');
+    return Promise.reject(new Error('Receipt iframe unavailable'));
+  }
+
   idoc.open();
   idoc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
     *{box-sizing:border-box;margin:0;padding:0;}
@@ -4544,16 +4550,20 @@ function downloadReceipt(source, filename = 'Receipt.pdf') {
   </style></head><body>${receiptHtmlString}</body></html>`);
   idoc.close();
 
-  const cleanup = () => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); };
-
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       iframe.style.height = (idoc.body.scrollHeight + 20) + 'px';
+
       html2pdf().set({
         margin: 10,
         filename: filename,
         image: { type: 'png' },
-        html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       }).from(idoc.body).save().then(() => {
         toast('Receipt downloaded!', 'ok');
@@ -4567,7 +4577,6 @@ function downloadReceipt(source, filename = 'Receipt.pdf') {
     }, 60);
   });
 }
-
 function printReceipt() {
   const el = document.getElementById('print-receipt');
   if (!el) return;
