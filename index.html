@@ -4531,14 +4531,15 @@ function downloadReceipt(source, filename = 'Receipt.pdf') {
     filename: filename,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: {
-    scale: 2,
-    useCORS: true,
-    logging: false,
-    scrollX: 0,
-    scrollY: -window.scrollY,
-    windowWidth: document.documentElement.scrollWidth,
-    windowHeight: document.documentElement.scrollHeight
-  },
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      scrollX: 0,
+      scrollY: -window.scrollY,
+      windowWidth: document.documentElement.scrollWidth,
+      windowHeight: document.documentElement.scrollHeight
+    },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   }).from(targetElement).save().then(() => {
     toast('Receipt downloaded!', 'ok');
@@ -4561,8 +4562,35 @@ function printReceipt() {
     if (match) filename = `Receipt-${match[1]}.pdf`;
   }
 
-  downloadReceipt(el, filename);
+  downloadReceipt(el.outerHTML, filename);
 }
+
+async function downloadOrderReceiptFromReport(o) {
+  if (!o || !o.id) {
+    toast('Order details missing.', 'err');
+    return;
+  }
+
+  if (!Array.isArray(o.items) || !o.items.length || !o.total) {
+    try {
+      const orders = await apiFetch('/orders/all');
+      const fullOrder = orders.find(x => x.id === o.id);
+      if (fullOrder) {
+        o = fullOrder;
+      } else {
+        toast('Order not found in backend.', 'err');
+        return;
+      }
+    } catch (e) {
+      toast('Unable to retrieve order from server.', 'err');
+      return;
+    }
+  }
+
+  const html = receiptHTML(o);
+  downloadReceipt(html, `Receipt-${o.id}.pdf`);
+}
+
 
 /* ════════════════════════════════════════════════════════
    TOAST
