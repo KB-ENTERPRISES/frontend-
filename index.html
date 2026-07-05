@@ -4241,6 +4241,8 @@ function orderTimelineHTML(o) {
     </div>`).join('')}</div>`;
 }
 
+let _receiptPrintMode = 'download';
+
 function receiptHTML(o) {
   const isStall = (o.orderType || 'train') === 'stall';
   const rows = (o.items || []).map(i =>
@@ -4270,7 +4272,7 @@ function receiptHTML(o) {
     </div>`;
 }
 
-async function openReceipt(oid, orderData) {
+async function openReceipt(oid, orderData, printMode = 'download') {
   try {
     let o = orderData;
     if (!o) {
@@ -4285,6 +4287,7 @@ async function openReceipt(oid, orderData) {
       }
     }
     if (!o) { toast('Order not found', 'err'); return; }
+    _receiptPrintMode = printMode;
     openModal(`
       <div class="modal-title">Receipt — ${escapeHtml(o.id)}</div>
       ${receiptHTML(o)}
@@ -4568,11 +4571,20 @@ function printReceipt() {
   const el = document.getElementById('print-receipt');
   if (!el) return;
 
-  // Use the browser's native print (the file already has a @media print
-  // stylesheet set up for exactly this). The person picks "Save as PDF"
-  // as the destination in the print dialog. This avoids html2canvas,
-  // which has been producing blank captures in some environments.
-  window.print();
+  if (_receiptPrintMode === 'native') {
+    // Daily Report: browser's native print dialog — user picks where to save.
+    window.print();
+    return;
+  }
+
+  // Crew / user / other admin views: auto-download like before.
+  const titleEl = el.querySelector('.receipt-subtitle');
+  let filename = 'Receipt.pdf';
+  if (titleEl) {
+    const match = titleEl.textContent.match(/(ORD-[\d-]+)/);
+    if (match) filename = `Receipt-${match[1]}.pdf`;
+  }
+  downloadReceipt(el.outerHTML, filename);
 }
 
 async function downloadOrderReceiptFromReport(o) {
@@ -4774,7 +4786,7 @@ async function viewDailyReportDetails() {
                     <td><strong>₹${o.total}</strong></td>
                     <td>${escapeHtml(o.crew_name || 'Unassigned')}</td>
                     <td><span class="badge ${statusClass}">${o.status}</span></td>
-                    <td><button class="btn btn-outline" style="padding:4px 10px; font-size:11px; white-space:nowrap;" onclick="openReceipt('${escapeHtml(o.id)}')">📄 Receipt</button></td>
+                    <td><button class="btn btn-outline" style="padding:4px 10px; font-size:11px; white-space:nowrap;" onclick="openReceipt('${escapeHtml(o.id)}', null, 'native')">📄 Receipt</button></td>
                   </tr>
                 `;
               }).join('')}
