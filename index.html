@@ -4241,6 +4241,8 @@ function orderTimelineHTML(o) {
     </div>`).join('')}</div>`;
 }
 
+let _receiptPrintMode = 'download';
+
 function receiptHTML(o) {
   const isStall = (o.orderType || 'train') === 'stall';
   const rows = (o.items || []).map(i =>
@@ -4270,7 +4272,7 @@ function receiptHTML(o) {
     </div>`;
 }
 
-async function openReceipt(oid, orderData) {
+async function openReceipt(oid, orderData, printMode = 'download') {
   try {
     let o = orderData;
     if (!o) {
@@ -4285,6 +4287,7 @@ async function openReceipt(oid, orderData) {
       }
     }
     if (!o) { toast('Order not found', 'err'); return; }
+    _receiptPrintMode = printMode;
     openModal(`
       <div class="modal-title">Receipt — ${escapeHtml(o.id)}</div>
       ${receiptHTML(o)}
@@ -4499,92 +4502,99 @@ function outsideModal(e) { if (e.target === document.getElementById('modal-overl
    PRINT RECEIPT
 ════════════════════════════════════════════════════════ */
 function downloadReceipt(source, filename = 'Receipt.pdf') {
-  let targetElement = null;
-  let removeAfter = false;
+  const receiptHtmlString = (typeof source === 'string') ? source : (source ? source.outerHTML : '');
 
-  if (typeof source === 'string') {
-    targetElement = document.createElement('div');
-    targetElement.style.position = 'fixed';
-    targetElement.style.left = '-9999px';
-    targetElement.style.top = '0';
-    targetElement.style.width = '800px';
-    targetElement.style.background = '#ffffff';
-    targetElement.innerHTML = source;
-    document.body.appendChild(targetElement);
-    removeAfter = true;
-  } else {
-    targetElement = source;
-  }
-
-  if (!targetElement) {
+  if (!receiptHtmlString) {
     toast('Receipt not found.', 'err');
     return Promise.reject(new Error('Receipt source missing'));
   }
 
-  const receiptCard = targetElement.classList?.contains('receipt-card')
-    ? targetElement
-    : targetElement.querySelector?.('.receipt-card');
-  const originalBoxShadow = receiptCard ? receiptCard.style.boxShadow : '';
-  const originalBackground = receiptCard ? receiptCard.style.background : '';
-  if (receiptCard) {
-    receiptCard.style.boxShadow = 'none';
-    receiptCard.style.background = '#ffffff';
+  toast('Downloading receipt...', 'ok');
+
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.left = '-99999px';
+  iframe.style.top = '0';
+  iframe.style.width = '800px';
+  iframe.style.height = '1400px';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+
+  const cleanup = () => {
+    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+  };
+
+  const idoc = iframe.contentWindow && iframe.contentWindow.document;
+  if (!idoc) {
+    cleanup();
+    toast('Download failed.', 'err');
+    return Promise.reject(new Error('Receipt iframe unavailable'));
   }
 
-  toast('Downloading receipt...', 'ok');
-  return html2pdf().set({
-    margin: 10,
-    filename: filename,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  }).from(targetElement).save().then(() => {
-    toast('Receipt downloaded!', 'ok');
-    if (receiptCard) {
-      receiptCard.style.boxShadow = originalBoxShadow;
-      receiptCard.style.background = originalBackground;
-    }
-    if (removeAfter && targetElement.parentNode) targetElement.parentNode.removeChild(targetElement);
-  }).catch((err) => {
-    if (receiptCard) {
-      receiptCard.style.boxShadow = originalBoxShadow;
-      receiptCard.style.background = originalBackground;
-    }
-    if (removeAfter && targetElement.parentNode) targetElement.parentNode.removeChild(targetElement);
-    toast('Download failed.', 'err');
-    throw err;
+  idoc.open();
+  idoc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:Arial,Helvetica,sans-serif;background:#ffffff;padding:16px;}
+    .receipt-card{border:1px solid #eeeeee;border-radius:8px;background:#ffffff;padding:20px;margin-bottom:20px;color:#111111;}
+    .receipt-header{text-align:center;margin-bottom:16px;border-bottom:1px dashed #dddddd;padding-bottom:16px;}
+    .receipt-title{font-size:16px;font-weight:800;color:#111111;text-transform:uppercase;letter-spacing:1px;}
+    .receipt-subtitle{font-size:11px;color:#666666;margin-top:4px;}
+    .receipt-meta{font-size:12px;color:#333333;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;}
+    .receipt-meta div span{color:#888888;display:block;font-size:10px;text-transform:uppercase;font-weight:700;}
+    .receipt-table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12.5px;}
+    .receipt-table th{border-bottom:1px solid #111111;padding:6px 0;font-weight:700;text-align:left;font-size:11px;text-transform:uppercase;color:#333333;}
+    .receipt-table td{padding:8px 0;border-bottom:1px dashed #eeeeee;color:#222222;}
+    .receipt-table tr:last-child td{border-bottom:none;}
+    .receipt-total-row{border-top:1px solid #111111;font-weight:800;font-size:14px;padding:10px 0;display:flex;justify-content:space-between;color:#ff385c;}
+    .receipt-footer{text-align:center;font-size:12px;color:#333333;font-weight:600;margin-top:16px;border-top:1px dashed #dddddd;padding-top:12px;padding-bottom:8px;}
+  </style></head><body>${receiptHtmlString}</body></html>`);
+  idoc.close();
+
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      iframe.style.height = (idoc.body.scrollHeight + 20) + 'px';
+
+      html2pdf().set({
+        margin: 10,
+        filename: filename,
+        image: { type: 'png' },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).from(idoc.body).save().then(() => {
+        toast('Receipt downloaded!', 'ok');
+        cleanup();
+        resolve();
+      }).catch((err) => {
+        cleanup();
+        toast('Download failed.', 'err');
+        reject(err);
+      });
+    }, 60);
   });
 }
-
 function printReceipt() {
   const el = document.getElementById('print-receipt');
   if (!el) return;
 
+  if (_receiptPrintMode === 'native') {
+    // Daily Report: browser's native print dialog — user picks where to save.
+    window.print();
+    return;
+  }
+
+  // Crew / user / other admin views: auto-download like before.
   const titleEl = el.querySelector('.receipt-subtitle');
   let filename = 'Receipt.pdf';
   if (titleEl) {
     const match = titleEl.textContent.match(/(ORD-[\d-]+)/);
     if (match) filename = `Receipt-${match[1]}.pdf`;
   }
-
-  downloadReceipt(el, filename);
-}
-
-function normalizeOrderFields(o) {
-  if (!o) return o;
-  return {
-    ...o,
-    userName: o.userName || o.user_name || '-',
-    orderType: o.orderType || o.order_type || 'train',
-    trainNo: o.trainNo || o.train_no || '',
-    trainName: o.trainName || o.train_name || '',
-    stallName: o.stallName || o.stall_name || '',
-    stallLocation: o.stallLocation || o.stall_location || '',
-    currentLocation: o.currentLocation || o.current_location || '',
-    assignedCrewId: o.assignedCrewId || o.assigned_crew_id || '',
-    createdAt: o.createdAt || o.created_at || '',
-    crewName: o.crewName || o.crew_name || 'Unassigned'
-  };
+  downloadReceipt(el.outerHTML, filename);
 }
 
 async function downloadOrderReceiptFromReport(o) {
@@ -4593,14 +4603,12 @@ async function downloadOrderReceiptFromReport(o) {
     return;
   }
 
-  o = normalizeOrderFields(o);
-
   if (!Array.isArray(o.items) || !o.items.length || !o.total) {
     try {
       const orders = await apiFetch('/orders/all');
       const fullOrder = orders.find(x => x.id === o.id);
       if (fullOrder) {
-        o = normalizeOrderFields(fullOrder);
+        o = fullOrder;
       } else {
         toast('Order not found in backend.', 'err');
         return;
@@ -4611,45 +4619,7 @@ async function downloadOrderReceiptFromReport(o) {
     }
   }
 
-  const itemsRows = (o.items || []).map(i =>
-    `<tr><td>${escapeHtml(i.name)}</td><td style="text-align:center">${i.qty}</td><td style="text-align:right">&#8377;${(i.price * i.qty).toFixed(2)}</td></tr>`
-  ).join('');
-  const orderType = (o.orderType || 'TRAIN').toUpperCase();
-  const isStall = o.orderType === 'stall';
-  const target = isStall
-    ? (o.stallName || o.trainName || '-')
-    : `${o.trainNo || '-'}${o.trainName ? ' - ' + o.trainName : ''}`;
-
-  const html = `
-    <div class="receipt-card" style="font-family:Arial,sans-serif;width:600px;margin:0 auto;padding:24px;border:1px solid #eee;border-radius:8px;color:#111;">
-      <div class="receipt-header" style="text-align:center;margin-bottom:16px;border-bottom:1px dashed #ddd;padding-bottom:16px;">
-        <div style="font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:1px;">KB Enterprises</div>
-        <div style="font-size:12px;color:#666;margin-top:4px;">${escapeHtml(o.id)}</div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;font-size:13px;margin-bottom:16px;">
-        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Customer</span>${escapeHtml(o.userName || '-')}</div>
-        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Type</span>${escapeHtml(orderType)}</div>
-        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Train / Stall</span>${escapeHtml(target)}</div>
-        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Status</span>${escapeHtml(o.status || '-')}</div>
-        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Delivered By</span>${escapeHtml(o.crewName || 'Unassigned')}</div>
-        <div><span style="color:#777;display:block;font-size:10px;text-transform:uppercase;font-weight:700;margin-bottom:2px;">Date</span>${o.createdAt ? escapeHtml(new Date(o.createdAt).toLocaleDateString('en-IN')) : '-'}</div>
-      </div>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;">
-        <thead><tr>
-          <th style="border-bottom:1px solid #111;padding:7px 0;text-align:left;font-size:11px;text-transform:uppercase;">Item</th>
-          <th style="border-bottom:1px solid #111;padding:7px 0;text-align:center;font-size:11px;text-transform:uppercase;">Qty</th>
-          <th style="border-bottom:1px solid #111;padding:7px 0;text-align:right;font-size:11px;text-transform:uppercase;">Amount</th>
-        </tr></thead>
-        <tbody>${itemsRows}</tbody>
-      </table>
-      <div style="border-top:1px solid #111;font-weight:800;font-size:15px;padding:11px 0;display:flex;justify-content:space-between;color:#ff385c;">
-        <span>TOTAL</span><span>&#8377;${Number(o.total).toFixed(2)}</span>
-      </div>
-      <div style="text-align:center;font-size:11px;color:#666;margin-top:16px;border-top:1px dashed #ddd;padding-top:12px;">
-        Thank you for choosing KB Enterprises!
-      </div>
-    </div>`;
-
+  const html = receiptHTML(o);
   downloadReceipt(html, `Receipt-${o.id}.pdf`);
 }
 
@@ -4788,7 +4758,6 @@ async function viewDailyReportDetails() {
   
   try {
     const data = await apiFetch('/reports/daily-json?date=' + date);
-    data.orders = (data.orders || []).map(normalizeOrderFields);
     
     let ordersHtml = '';
     if (!data.orders || !data.orders.length) {
@@ -4814,22 +4783,22 @@ async function viewDailyReportDetails() {
               ${data.orders.map(o => {
                 const itemsStr = (o.items || []).map(i => `${escapeHtml(i.name)} (x${i.qty})`).join(', ');
                 const orderType = (o.orderType || 'TRAIN').toUpperCase();
-                const isStall = o.orderType === 'stall';
-                const target = isStall
-                  ? escapeHtml(o.stallName || o.trainName || '-')
-                  : `${escapeHtml(o.trainNo || '-')}${o.trainName ? ' - ' + escapeHtml(o.trainName) : ''}`;
+                const isStall = (o.orderType || o.order_type) === 'stall';
+                const target = isStall 
+                ? escapeHtml(o.stallName || o.stall_name || o.trainName || o.train_name || '-')
+                : `${escapeHtml(o.trainNo || o.train_no || '-')}${(o.trainName || o.train_name) ? ' - ' + escapeHtml(o.trainName || o.train_name) : ''}`;
                 const statusClass = o.status === 'COMPLETED' ? 'badge-completed' : (o.status === 'ACCEPTED' ? 'badge-accepted' : 'badge-pending');
                 return `
                   <tr>
                     <td><strong>${escapeHtml(o.id)}</strong></td>
-                    <td>${escapeHtml(o.userName)}</td>
+                    <td>${escapeHtml(o.userName || o.user_name || '-')}</td>
                     <td><span class="badge" style="background:var(--surface-2); color:var(--text); font-size:11px;">${orderType}</span></td>
                     <td>${target}</td>
                     <td style="font-size:12px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(itemsStr)}">${escapeHtml(itemsStr)}</td>
                     <td><strong>₹${o.total}</strong></td>
-                    <td>${escapeHtml(o.crewName || 'Unassigned')}</td>
+                    <td>${escapeHtml(o.crew_name || 'Unassigned')}</td>
                     <td><span class="badge ${statusClass}">${o.status}</span></td>
-                    <td><button class="btn btn-outline" style="padding:4px 10px; font-size:11px; white-space:nowrap;" onclick="downloadOrderReceiptFromReport(${JSON.stringify(o).replace(/"/g,'&quot;')})">📄 Receipt</button></td>
+                    <td><button class="btn btn-outline" style="padding:4px 10px; font-size:11px; white-space:nowrap;" onclick="openReceipt('${escapeHtml(o.id)}', null, 'native')">📄 Receipt</button></td>
                   </tr>
                 `;
               }).join('')}
