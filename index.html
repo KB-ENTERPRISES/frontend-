@@ -4783,8 +4783,10 @@ async function viewDailyReportDetails() {
               ${data.orders.map(o => {
                 const itemsStr = (o.items || []).map(i => `${escapeHtml(i.name)} (x${i.qty})`).join(', ');
                 const orderType = (o.orderType || 'TRAIN').toUpperCase();
-                const isStall = o.orderType === 'stall';
-                const target = isStall ? escapeHtml(o.stallName || o.trainName) : `${escapeHtml(o.trainNo)} - ${escapeHtml(o.trainName)}`;
+                const isStall = (o.orderType || o.order_type) === 'stall';
+                const target = isStall 
+                ? escapeHtml(o.stallName || o.stall_name || o.trainName || o.train_name || '-')
+                : `${escapeHtml(o.trainNo || o.train_no || '-')}${(o.trainName || o.train_name) ? ' - ' + escapeHtml(o.trainName || o.train_name) : ''}`;
                 const statusClass = o.status === 'COMPLETED' ? 'badge-completed' : (o.status === 'ACCEPTED' ? 'badge-accepted' : 'badge-pending');
                 return `
                   <tr>
