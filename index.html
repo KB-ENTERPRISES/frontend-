@@ -4568,14 +4568,11 @@ function printReceipt() {
   const el = document.getElementById('print-receipt');
   if (!el) return;
 
-  const titleEl = el.querySelector('.receipt-subtitle');
-  let filename = 'Receipt.pdf';
-  if (titleEl) {
-    const match = titleEl.textContent.match(/(ORD-[\d-]+)/);
-    if (match) filename = `Receipt-${match[1]}.pdf`;
-  }
-
-  downloadReceipt(el.outerHTML, filename);
+  // Use the browser's native print (the file already has a @media print
+  // stylesheet set up for exactly this). The person picks "Save as PDF"
+  // as the destination in the print dialog. This avoids html2canvas,
+  // which has been producing blank captures in some environments.
+  window.print();
 }
 
 async function downloadOrderReceiptFromReport(o) {
