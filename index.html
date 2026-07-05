@@ -4499,55 +4499,68 @@ function outsideModal(e) { if (e.target === document.getElementById('modal-overl
    PRINT RECEIPT
 ════════════════════════════════════════════════════════ */
 function downloadReceipt(source, filename = 'Receipt.pdf') {
-  let targetElement = null;
-  let removeAfter = false;
+  const receiptHtmlString = (typeof source === 'string') ? source : (source ? source.outerHTML : '');
 
-  if (typeof source === 'string') {
-    targetElement = document.createElement('div');
-    targetElement.style.position = 'relative';
-    targetElement.style.left = '0';
-    targetElement.style.top = '0';
-    targetElement.style.width = '800px';
-    targetElement.style.maxWidth = '800px';
-    targetElement.style.margin = '0 auto';
-    targetElement.style.background = '#fff';
-    targetElement.style.padding = '0';
-    targetElement.style.display = 'block';
-    targetElement.innerHTML = source;
-    document.body.appendChild(targetElement);
-    removeAfter = true;
-  } else {
-    targetElement = source;
-  }
-
-  if (!targetElement) {
+  if (!receiptHtmlString) {
     toast('Receipt not found.', 'err');
     return Promise.reject(new Error('Receipt source missing'));
   }
 
   toast('Downloading receipt...', 'ok');
-  return html2pdf().set({
-    margin: 10,
-    filename: filename,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      scrollX: 0,
-      scrollY: -window.scrollY,
-      windowWidth: document.documentElement.scrollWidth,
-      windowHeight: document.documentElement.scrollHeight
-    },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  }).from(targetElement).save().then(() => {
-    toast('Receipt downloaded!', 'ok');
-    if (removeAfter && targetElement.parentNode) targetElement.parentNode.removeChild(targetElement);
-  }).catch((err) => {
-    if (removeAfter && targetElement.parentNode) targetElement.parentNode.removeChild(targetElement);
-    toast('Download failed.', 'err');
-    throw err;
+
+  // Render into a fully isolated iframe with its own minimal stylesheet.
+  // This avoids handing html2canvas the app's full modern stylesheet
+  // (backdrop-filter, grid, env(), etc.) which its older parser chokes on,
+  // silently producing a blank page no matter what element is targeted.
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.left = '-99999px';
+  iframe.style.top = '0';
+  iframe.style.width = '800px';
+  iframe.style.height = '1400px';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+
+  const idoc = iframe.contentWindow.document;
+  idoc.open();
+  idoc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:Arial,Helvetica,sans-serif;background:#ffffff;padding:16px;}
+    .receipt-card{border:1px solid #eeeeee;border-radius:8px;background:#ffffff;padding:20px;margin-bottom:20px;color:#111111;}
+    .receipt-header{text-align:center;margin-bottom:16px;border-bottom:1px dashed #dddddd;padding-bottom:16px;}
+    .receipt-title{font-size:16px;font-weight:800;color:#111111;text-transform:uppercase;letter-spacing:1px;}
+    .receipt-subtitle{font-size:11px;color:#666666;margin-top:4px;}
+    .receipt-meta{font-size:12px;color:#333333;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;}
+    .receipt-meta div span{color:#888888;display:block;font-size:10px;text-transform:uppercase;font-weight:700;}
+    .receipt-table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12.5px;}
+    .receipt-table th{border-bottom:1px solid #111111;padding:6px 0;font-weight:700;text-align:left;font-size:11px;text-transform:uppercase;color:#333333;}
+    .receipt-table td{padding:8px 0;border-bottom:1px dashed #eeeeee;color:#222222;}
+    .receipt-table tr:last-child td{border-bottom:none;}
+    .receipt-total-row{border-top:1px solid #111111;font-weight:800;font-size:14px;padding:10px 0;display:flex;justify-content:space-between;color:#ff385c;}
+    .receipt-footer{text-align:center;font-size:11px;color:#666666;margin-top:16px;border-top:1px dashed #dddddd;padding-top:12px;}
+  </style></head><body>${receiptHtmlString}</body></html>`);
+  idoc.close();
+
+  const cleanup = () => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); };
+
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      html2pdf().set({
+        margin: 10,
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).from(idoc.body).save().then(() => {
+        toast('Receipt downloaded!', 'ok');
+        cleanup();
+        resolve();
+      }).catch((err) => {
+        cleanup();
+        toast('Download failed.', 'err');
+        reject(err);
+      });
+    }, 60);
   });
 }
 
