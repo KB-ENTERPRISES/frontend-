@@ -4789,7 +4789,7 @@ async function viewDailyReportDetails() {
                 return `
                   <tr>
                     <td><strong>${escapeHtml(o.id)}</strong></td>
-                    <td>${escapeHtml(o.userName)}</td>
+                    <td>${escapeHtml(o.userName || o.user_name || '-')}</td>
                     <td><span class="badge" style="background:var(--surface-2); color:var(--text); font-size:11px;">${orderType}</span></td>
                     <td>${target}</td>
                     <td style="font-size:12px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(itemsStr)}">${escapeHtml(itemsStr)}</td>
