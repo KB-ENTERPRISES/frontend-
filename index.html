@@ -3903,12 +3903,13 @@ async function renderAllOrders(el) {
       return `
         <div class="card table-scroll" style="padding:0;overflow-x:auto">
           <table class="dt">
-            <thead><tr><th>ID</th><th>Customer</th><th>Train / Stall</th><th>ETA</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>ID</th><th>Customer</th><th>Phone</th><th>Train / Stall</th><th>ETA</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               ${list.map(o => `<tr>
-                <td style="font-weight:600">${escapeHtml(o.id)}</td>
-                <td>${escapeHtml(o.userName)}</td>
-                <td>${o.orderType === 'stall'
+                 <td style="font-weight:600">${escapeHtml(o.id)}</td>
+                 <td>${escapeHtml(o.userName)}</td>
+                 <td>${escapeHtml(o.userPhone || '—')}</td>
+                 <td>${o.orderType === 'stall'
                   ? `<span style="font-size:11px;color:var(--text-muted)">Stall</span><br>${escapeHtml(o.stallName || o.trainName)}`
                   : `${escapeHtml(o.trainNo)}<br><span style="font-size:11px;color:var(--text-muted)">${escapeHtml(o.trainName)}</span>`}</td>
                 <td>${o.orderType === 'stall' ? '—' : escapeHtml(o.eta)}</td>
@@ -3919,7 +3920,7 @@ async function renderAllOrders(el) {
                   <button class="btn btn-outline btn-xs" onclick="openDetail('${escapeHtml(o.id)}')">View</button>
                 </td>
               </tr>`).join('')}
-              ${!list.length?`<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px">No orders found.</td></tr>`:''}
+              ${!list.length?`<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px">No orders found.</td></tr>`:''}
             </tbody>
           </table>
         </div>`;
@@ -4126,15 +4127,16 @@ async function renderUsers(el) {
       <div class="page-header"><div><div class="section-title">Registered Users</div></div></div>
       <div class="card table-scroll" style="padding:0;overflow-x:auto">
         <table class="dt">
-          <thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
+          <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th></tr></thead>
           <tbody>
             ${!users.length
-              ? '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:24px">No users yet.</td></tr>'
+              ? '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px">No users yet.</td></tr>'
               : users.map(u => `<tr>
                   <td style="font-weight:500">${escapeHtml(u.name)}</td>
-                  <td>${escapeHtml(u.email)}</td>
-                  <td><span class="badge badge-accepted">${escapeHtml(u.role)}</span></td>
-                </tr>`).join('')}
+                 <td>${escapeHtml(u.email)}</td>
+                 <td>${escapeHtml(u.phone || '—')}</td>
+                 <td><span class="badge badge-accepted">${escapeHtml(u.role)}</span></td>
+              </tr>`).join('')}
           </tbody>
         </table>
       </div>`;
@@ -4778,6 +4780,7 @@ async function viewDailyReportDetails() {
               <tr>
                 <th>Order ID</th>
                 <th>Customer</th>
+                <th>Phone</th>
                 <th>Type</th>
                 <th>Train / Stall</th>
                 <th>Items Ordered</th>
@@ -4800,6 +4803,7 @@ async function viewDailyReportDetails() {
                   <tr>
                     <td><strong>${escapeHtml(o.id)}</strong></td>
                     <td>${escapeHtml(o.userName || o.user_name || '-')}</td>
+                    <td>${escapeHtml(o.user_phone || o.userPhone || '-')}</td>
                     <td><span class="badge" style="background:var(--surface-2); color:var(--text); font-size:11px;">${orderType}</span></td>
                     <td>${target}</td>
                     <td style="font-size:12px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(itemsStr)}">${escapeHtml(itemsStr)}</td>
