@@ -2055,7 +2055,13 @@ input:focus, select:focus, textarea:focus {
           <div class="form-group"><label>Last name</label><input type="text" id="u-lname" placeholder="Kumar"></div>
         </div>
         <div class="form-group"><label>Email address</label><input type="email" id="u-semail" placeholder="you@gmail.com" autocomplete="email"></div>
+        <div class="form-group">
+        <label>Phone number</label>
+        <input type="tel" id="u-sphone" placeholder="10-digit mobile number" inputmode="numeric" maxlength="10" autocomplete="tel"
+            oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,10)">
+        </div>
         <div class="form-group"><label>Password</label><div class="password-field"><input type="password" id="u-spass" placeholder="Create a password (min 6 chars)" autocomplete="new-password"><button type="button" class="password-toggle" onclick="togglePasswordVisibility('u-spass', this)" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></div></div>
+        
         <div class="form-group">
           <label>Role</label>
           <select id="u-srole">
@@ -2629,14 +2635,16 @@ async function signupAs() {
   const fname = document.getElementById('u-fname').value.trim();
   const lname = document.getElementById('u-lname').value.trim();
   const email = document.getElementById('u-semail').value.trim();
+  const phone = document.getElementById('u-sphone').value.trim();
   const pass  = document.getElementById('u-spass').value;
   const role  = document.getElementById('u-srole').value.toUpperCase();
-  if (!fname || !email || !pass) { toast('Fill in all required fields', 'err'); return; }
+  if (!fname || !email || !phone || !pass) { toast('Fill in all required fields', 'err'); return; }
+  if (!/^[6-9]\d{9}$/.test(phone)) { toast('Enter a valid 10-digit mobile number', 'err'); return; }
   if (pass.length < 6) { toast('Password must be at least 6 characters', 'err'); return; }
   try {
     const data = await apiFetch('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ firstName: fname, lastName: lname, email, password: pass, role })
+      body: JSON.stringify({ firstName: fname, lastName: lname, email, phone, password: pass, role })
     });
     currentUser = { ...data, email: data.email || email };
     sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
