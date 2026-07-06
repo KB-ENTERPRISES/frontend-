@@ -4329,11 +4329,23 @@ function orderCard(o, viewer) {
   if (status === 'completed') {
     actions += `${actions ? ' ' : ''}<button class="btn btn-outline btn-sm" onclick="openReceipt('${escapeHtml(o.id)}')">Receipt</button>`;
   }
+  const phoneMetaHtml = (viewer !== 'user' && o.userPhone)
+    ? `<div class="meta-item">
+         <strong style="display:flex;align-items:center;gap:6px;">
+           <a href="tel:${escapeHtml(o.userPhone)}" style="color:var(--accent);text-decoration:none;">${escapeHtml(o.userPhone)}</a>
+           <button type="button" onclick="copyPhone(event,'${escapeHtml(o.userPhone)}')" title="Copy number" style="border:none;background:none;cursor:pointer;color:var(--text-muted);padding:0;font-size:13px;line-height:1;">📋</button>
+         </strong>
+         Phone
+       </div>`
+    : '';
+
   const metaHtml = isStall
     ? `<div class="meta-item"><strong>${escapeHtml(o.userName)}</strong>Owner</div>
+       ${phoneMetaHtml}
        <div class="meta-item"><strong>${escapeHtml(o.stallName || o.trainName)}</strong>Stall</div>
        <div class="meta-item"><strong>${escapeHtml(o.stallLocation || o.currentLocation)}</strong>Location</div>`
     : `<div class="meta-item"><strong>${escapeHtml(o.userName)}</strong>Customer</div>
+       ${phoneMetaHtml}
        <div class="meta-item"><strong>${escapeHtml(o.trainNo)}</strong>Train No.</div>
        <div class="meta-item"><strong>${escapeHtml(o.trainName)}</strong>Train Name</div>
        <div class="meta-item"><strong>${escapeHtml(o.currentLocation)}</strong>Location</div>
@@ -4643,6 +4655,22 @@ function toast(msg, type='') {
   d.textContent = msg;
   document.getElementById('toast-wrap').appendChild(d);
   setTimeout(() => d.remove(), 3500);
+}
+
+
+
+/*   phone number copyting option in the crew page    */
+  
+function copyPhone(e, phone) {
+  e.stopPropagation();
+  e.preventDefault();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(phone)
+      .then(() => toast('Phone number copied: ' + phone, 'ok'))
+      .catch(() => toast('Could not copy number', 'err'));
+  } else {
+    toast('Copy not supported on this browser', 'err');
+  }
 }
 
 /* ════════════════════════════════════════════════════════
