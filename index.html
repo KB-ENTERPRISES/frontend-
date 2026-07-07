@@ -3800,16 +3800,22 @@ async function renderNotifications(el) {
           ? '<p class="muted small tc" style="padding:24px 0">No notifications. You\'re all caught up! &#127881;</p>'
           : notifs.map(n => {
               const isReceipt = n.message.startsWith('RECEIPT:');
+              const isSlip = n.message.startsWith('SLIP:');
               let displayMsg = n.message;
-              let receiptBtn = '';
+              let actionBtn = '';
               if (isReceipt) {
                 const parts = n.message.split(':');
                 const oid = parts[1];
                 displayMsg = parts.slice(2).join(':');
-                receiptBtn = '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="openReceipt(\'' + escapeHtml(oid) + '\')">View &amp; Download Receipt</button>';
+                actionBtn = '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="openReceipt(\'' + escapeHtml(oid) + '\')">View &amp; Download Receipt</button>';
+              } else if (isSlip) {
+                const parts = n.message.split(':');
+                const oid = parts[1];
+                displayMsg = parts.slice(2).join(':');
+                actionBtn = '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="downloadOrderSlipForUser(\'' + escapeHtml(oid) + '\')">Download Order Slip</button>';
               }
               return '<div class="notif-item' + (n.read ? '' : ' unread') + '" id="notif-' + n.id + '" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'
-                + '<div style="flex:1"><div class="notif-msg">' + escapeHtml(displayMsg) + '</div>' + receiptBtn
+                + '<div style="flex:1"><div class="notif-msg">' + escapeHtml(displayMsg) + '</div>' + actionBtn
                 + '<div class="notif-ts">' + escapeHtml(fmt(n.time)) + '</div></div>'
                 + '<button onclick="deleteNotif(' + n.id + ')" title="Dismiss" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:20px;padding:0 4px;line-height:1" aria-label="Delete notification">&times;</button></div>';
             }).join('')}
@@ -4562,6 +4568,19 @@ function downloadOrderSlip(o) {
   downloadReceipt(html, `Order-Slip-${o.id}.pdf`);
 }
 
+
+/* ______________________________________________________
+   DOWNLOAD ORDER SLIP FOR USR
+   _____________________________________________________*/
+
+  async function downloadOrderSlipForUser(oid) {
+  try {
+    const orders = await apiFetch('/orders/my');
+    const o = orders.find(x => x.id === oid);
+    if (!o) { toast('Order not found', 'err'); return; }
+    downloadOrderSlip(o);
+  } catch (e) { toast(e.message, 'err'); }
+}
 
   
 /* ════════════════════════════════════════════════════════
