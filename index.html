@@ -4255,9 +4255,14 @@ let _receiptPrintMode = 'download';
 
 function receiptHTML(o) {
   const isStall = (o.orderType || 'train') === 'stall';
-  const rows = (o.items || []).map(i =>
-    `<tr><td>${escapeHtml(i.name)}</td><td style="text-align:center">${i.qty}</td><td style="text-align:right">₹${i.price * i.qty}</td></tr>`
-  ).join('');
+  const isPartial = (o.originalTotal != null) && (Number(o.originalTotal) > Number(o.total) + 0.01);
+  const rows = (o.items || []).map(i => {
+    const delivered = i.deliveredQty != null ? i.deliveredQty : i.qty;
+    const qtyLabel = delivered !== i.qty
+      ? `${delivered} <span style="color:#999;font-size:11px">(of ${i.qty})</span>`
+      : `${delivered}`;
+    return `<tr><td>${escapeHtml(i.name)}</td><td style="text-align:center">${qtyLabel}</td><td style="text-align:right">₹${(i.price * delivered).toFixed(2)}</td></tr>`;
+  }).join('');
   return `
     <div class="receipt-card" id="print-receipt">
       <div class="receipt-header">
@@ -4266,6 +4271,7 @@ function receiptHTML(o) {
       </div>
       <div class="receipt-meta">
         <div><span>Customer</span>${escapeHtml(o.userName)}</div>
+        <div><span>Phone</span>${escapeHtml(o.userPhone || '—')}</div>
         <div><span>Date</span>${escapeHtml(fmt(o.createdAt))}</div>
         ${isStall
           ? `<div><span>Stall</span>${escapeHtml(o.stallName || o.trainName)}</div><div><span>Location</span>${escapeHtml(o.stallLocation || o.currentLocation || '—')}</div>`
@@ -4278,6 +4284,14 @@ function receiptHTML(o) {
         <tbody>${rows}</tbody>
       </table>
       <div class="receipt-total-row"><span>Grand Total</span><span>₹${o.total}</span></div>
+      ${isPartial
+        ? `<div style="margin-top:10px;padding:10px;border:1px dashed #dddddd;border-radius:6px;font-size:11.5px;color:#333333;">
+             <strong>Note:</strong> Partial delivery — original order total was ₹${Number(o.originalTotal).toFixed(2)}.
+             ${o.deliveryNote ? `<br><strong>Reason:</strong> ${escapeHtml(o.deliveryNote)}` : ''}
+           </div>`
+        : (o.deliveryNote
+            ? `<div style="margin-top:10px;padding:10px;border:1px dashed #dddddd;border-radius:6px;font-size:11.5px;color:#333333;"><strong>Note:</strong> ${escapeHtml(o.deliveryNote)}</div>`
+            : '')}
       <div class="receipt-footer">Thank you for choosing KB ENTERPRISES<br>Railway Pantry &amp; Stall Services</div>
     </div>`;
 }
@@ -4316,10 +4330,14 @@ function orderCard(o, viewer) {
   const isStall = (o.orderType || 'train') === 'stall';
   let actions = '';
   if (viewer === 'crew') {
-    if (status === 'pending')
-      actions = `<button class="btn btn-green btn-sm" onclick="acceptOrder('${escapeHtml(o.id)}')">Accept Order</button>`;
-    else if (status === 'accepted' && o.assignedCrewId === currentUser.crewId)
-      actions = `<button class="btn btn-primary btn-sm" onclick="openUpload('${escapeHtml(o.id)}')">Upload Payment</button>`;
+    const orderJson = JSON.stringify(o).replace(/'/g, "&apos;");
+    if (status === 'pending') {
+      actions = `<button class="btn btn-green btn-sm" onclick="acceptOrder('${escapeHtml(o.id)}')">Accept Order</button>
+        <button class="btn btn-outline btn-sm" onclick='downloadOrderSlip(${orderJson})'>Download</button>`;
+    } else if (status === 'accepted' && o.assignedCrewId === currentUser.crewId) {
+      actions = `<button class="btn btn-outline btn-sm" onclick='downloadOrderSlip(${orderJson})'>Download</button>
+        <button class="btn btn-primary btn-sm" onclick='openUpload(${orderJson})'>Upload Payment</button>`;
+    }
   }
   if (viewer === 'admin') {
     if (status === 'pending')
@@ -4406,10 +4424,30 @@ function clearTimers() { reminderTimers.forEach(t => clearInterval(t)); reminder
 /* ════════════════════════════════════════════════════════
    UPLOAD PAYMENT SCREENSHOT
 ════════════════════════════════════════════════════════ */
-function openUpload(oid) {
+function openUpload(o) {
+  const items = o.items || [];
+  const totalOrderedQty = items.reduce((s, i) => s + i.qty, 0);
+
+  const itemRows = items.map(i => `
+    <div class="flex jc-sb items-c mb-8" style="gap:10px;">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:13px">${escapeHtml(i.name)}</div>
+        <div class="small muted">Ordered: ${i.qty} × ₹${i.price}</div>
+      </div>
+      <input type="number" class="delivered-qty-input" data-product-id="${escapeHtml(i.productId)}" data-price="${i.price}"
+        value="${i.qty}" min="0" max="${i.qty}" style="width:80px;text-align:center" oninput="updateDeliveredTotal()">
+    </div>`).join('');
+
   openModal(`
-    <div class="modal-title">Upload Payment Screenshot</div>
-    <p class="muted small mb-16">Order ${escapeHtml(oid)} — upload your screenshot to <a href="https://imgbb.com" target="_blank" rel="noopener" style="color:var(--accent)">imgbb.com</a> or <a href="https://podu.pics" target="_blank" rel="noopener" style="color:var(--accent)">podu.pics</a> and paste the direct image link below.</p>
+    <div class="modal-title">Upload Payment — ${escapeHtml(o.id)}</div>
+    <p class="muted small mb-12">Out of <strong>${totalOrderedQty}</strong> item${totalOrderedQty !== 1 ? 's' : ''} placed, how many did you deliver? Adjust below if anything was left undelivered.</p>
+    <div id="delivered-items-list" class="mb-16">${itemRows}</div>
+    <div class="divider"></div>
+    <div class="flex jc-sb items-c mb-16" style="font-weight:700;font-size:15px;">
+      <span>Deliverable Total</span>
+      <span id="delivered-total-display" style="color:var(--accent)">₹${Number(o.total).toFixed(2)}</span>
+    </div>
+    <p class="muted small mb-16">Upload your screenshot to <a href="https://imgbb.com" target="_blank" rel="noopener" style="color:var(--accent)">imgbb.com</a> or <a href="https://podu.pics" target="_blank" rel="noopener" style="color:var(--accent)">podu.pics</a> and paste the direct image link below.</p>
     <div class="form-group">
       <label>Screenshot URL</label>
       <input type="url" id="screenshot-url-input" placeholder="https://i.ibb.co/..." style="width:100%">
@@ -4417,10 +4455,26 @@ function openUpload(oid) {
     <div class="form-group mt-16">
       <label>Amount shown in screenshot</label>
       <input type="number" id="payment-screenshot-amount" placeholder="e.g. 200" inputmode="numeric" min="0">
-      <div class="muted small" style="margin-top:6px;">This is the amount visible in the payment screenshot.</div>
+      <div class="muted small" style="margin-top:6px;">This should match the Deliverable Total above.</div>
     </div>
-    <button class="btn btn-green btn-full mt-16" onclick="completeOrder('${oid}')">Mark Order as Completed</button>
+    <div class="form-group mt-16">
+      <label>Description <span class="muted" style="font-weight:400">(optional — reason for partial delivery, delays, etc.)</span></label>
+      <textarea id="delivery-description" placeholder="e.g. Train departed 2 minutes early, could only deliver 60 of 100 items."></textarea>
+    </div>
+    <button class="btn btn-green btn-full mt-16" onclick="completeOrder('${escapeHtml(o.id)}')">Mark Order as Completed</button>
   `);
+}
+
+function updateDeliveredTotal() {
+  const inputs = document.querySelectorAll('.delivered-qty-input');
+  let total = 0;
+  inputs.forEach(inp => {
+    const max = parseInt(inp.max) || 0;
+    let qty = Math.max(0, parseInt(inp.value) || 0);
+    if (qty > max) { qty = max; inp.value = max; }
+    total += qty * parseFloat(inp.dataset.price);
+  });
+  document.getElementById('delivered-total-display').textContent = '₹' + total.toFixed(2);
 }
 
 async function completeOrder(oid) {
@@ -4429,6 +4483,13 @@ async function completeOrder(oid) {
     const screenshotUrl = urlInput ? urlInput.value.trim() : '';
     const screenshotAmountInput = document.getElementById('payment-screenshot-amount');
     const screenshotAmount = screenshotAmountInput ? Number(screenshotAmountInput.value.trim()) : NaN;
+    const descriptionInput = document.getElementById('delivery-description');
+    const description = descriptionInput ? descriptionInput.value.trim() : '';
+
+    const deliveredItems = Array.from(document.querySelectorAll('.delivered-qty-input')).map(inp => ({
+      productId: inp.dataset.productId,
+      deliveredQty: Math.max(0, parseInt(inp.value) || 0)
+    }));
 
     if (!screenshotUrl) {
       toast('Paste the screenshot URL first.', 'err');
@@ -4442,12 +4503,18 @@ async function completeOrder(oid) {
       toast('Enter the amount shown in the screenshot.', 'err');
       return;
     }
+    if (!deliveredItems.length) {
+      toast('No items found for this order.', 'err');
+      return;
+    }
 
     await apiFetch('/orders/' + oid + '/payment-screenshot', {
       method: 'PATCH',
       body: JSON.stringify({
         screenshotUrl,
-        amountPaid: screenshotAmount
+        amountPaid: screenshotAmount,
+        deliveredItems,
+        description
       })
     });
     clearTimers(); dismissPopup(); closeModal();
@@ -4456,6 +4523,47 @@ async function completeOrder(oid) {
   } catch (e) { toast(e.message, 'err'); }
 }
 
+
+/* ______________________________________________________
+  ORDER SLIP HTML
+________________________________________________________ */
+
+function orderSlipHTML(o) {
+  const isStall = (o.orderType || 'train') === 'stall';
+  const rows = (o.items || []).map(i =>
+    `<tr><td>${escapeHtml(i.name)}</td><td style="text-align:center">${i.qty}</td><td style="text-align:right">₹${(i.price * i.qty).toFixed(2)}</td></tr>`
+  ).join('');
+  return `
+    <div class="receipt-card" id="print-receipt">
+      <div class="receipt-header">
+        <div class="receipt-title">KB ENTERPRISES</div>
+        <div class="receipt-subtitle">Order Slip · ${escapeHtml(o.id)}</div>
+      </div>
+      <div class="receipt-meta">
+        <div><span>Customer</span>${escapeHtml(o.userName)}</div>
+        <div><span>Phone</span>${escapeHtml(o.userPhone || '—')}</div>
+        <div><span>Placed At</span>${escapeHtml(fmt(o.createdAt))}</div>
+        ${isStall
+          ? `<div><span>Stall</span>${escapeHtml(o.stallName || o.trainName)}</div><div><span>Location</span>${escapeHtml(o.stallLocation || o.currentLocation || '—')}</div>`
+          : `<div><span>Train</span>${escapeHtml(o.trainNo)} · ${escapeHtml(o.trainName)}</div><div><span>Current Location</span>${escapeHtml(o.currentLocation || '—')}</div><div><span>Expected Arrival</span>${escapeHtml(o.eta || '—')}</div>`}
+        <div><span>Order Status</span>${escapeHtml(o.status)}</div>
+      </div>
+      <table class="receipt-table">
+        <thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Amount</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="receipt-total-row"><span>Amount to Pay</span><span>₹${o.total}</span></div>
+      <div class="receipt-footer">Please verify all items on delivery.<br>KB ENTERPRISES — Railway Pantry &amp; Stall Services</div>
+    </div>`;
+}
+
+function downloadOrderSlip(o) {
+  const html = orderSlipHTML(o);
+  downloadReceipt(html, `Order-Slip-${o.id}.pdf`);
+}
+
+
+  
 /* ════════════════════════════════════════════════════════
    ADMIN MODALS
 ════════════════════════════════════════════════════════ */
