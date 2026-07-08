@@ -4585,6 +4585,11 @@ async function completeOrder(oid) {
         description
       })
     });
+    clearTimers(); dismissPopup(); closeModal();
+    toast('Order completed and saved.', 'ok');
+    navigateTo('my-deliveries');
+  } catch (e) { toast(e.message, 'err'); }
+}
 
 
 /* ______________________________________________________
