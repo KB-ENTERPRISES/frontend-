@@ -3975,9 +3975,10 @@ async function renderAllOrders(el) {
                 <td>${o.orderType === 'stall' ? '—' : escapeHtml(o.eta)}</td>
                 <td>₹${o.total}</td>
                 <td><span class="badge badge-${escapeHtml(o.status.toLowerCase())}">${escapeHtml(o.status)}</span></td>
-                <td>
+                <td style="white-space:nowrap">
                   ${o.status==='PENDING'?`<button class="btn btn-outline btn-xs" onclick="openAssign('${escapeHtml(o.id)}')">Assign</button> `:''}
                   <button class="btn btn-outline btn-xs" onclick="openDetail('${escapeHtml(o.id)}')">View</button>
+                  <button class="btn btn-outline btn-xs" onclick='downloadOrderSlip(${JSON.stringify(o).replace(/'/g, "&apos;")})'>Download</button>
                 </td>
               </tr>`).join('')}
               ${!list.length?`<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px">No orders found.</td></tr>`:''}
@@ -4693,6 +4694,7 @@ async function openDetail(oid) {
       ${(o.items||[]).map(i=>`<div class="item-row"><span>${escapeHtml(i.name)}</span><span class="muted">× ${i.qty}</span><span>₹${i.price*i.qty}</span></div>`).join('')}
       <div class="item-row total-row"><span>Total</span><span></span><span>₹${o.total}</span></div>
       <div class="print-btn-row mt-16">
+        <button class="btn btn-outline btn-sm" onclick='downloadOrderSlip(${JSON.stringify(o).replace(/'/g, "&apos;")})'>Download Order Slip</button>
         ${o.status === 'COMPLETED' ? `<button class="btn btn-outline btn-sm" onclick="openReceipt('${escapeHtml(o.id)}')">View Receipt</button>` : ''}
       </div>
     `);
