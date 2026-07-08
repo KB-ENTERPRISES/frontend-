@@ -4535,7 +4535,7 @@ function openUpload(o) {
       <label>Description <span class="muted" style="font-weight:400">(optional — reason for partial delivery, delays, etc.)</span></label>
       <textarea id="delivery-description" placeholder="e.g. Train departed 2 minutes early, could only deliver 60 of 100 items."></textarea>
     </div>
-    <button class="btn btn-green btn-full mt-16" onclick="completeOrder('${escapeHtml(o.id)}')">Mark Order as Completed</button>
+    <button class="btn btn-green btn-full mt-16" id="complete-order-btn" onclick="this.disabled=true; this.textContent='Completing…'; completeOrder('${escapeHtml(o.id)}')">Mark Order as Completed</button>
   `);
 }
 
@@ -4589,7 +4589,11 @@ async function completeOrder(oid) {
     clearTimers(); dismissPopup(); closeModal();
     toast('Order completed and saved.', 'ok');
     navigateTo('my-deliveries');
-  } catch (e) { toast(e.message, 'err'); }
+  } catch (e) {
+    toast(e.message, 'err');
+    const btn = document.getElementById('complete-order-btn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Mark Order as Completed'; }
+  }
 }
 
 
