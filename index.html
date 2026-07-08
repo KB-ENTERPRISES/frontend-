@@ -2575,6 +2575,28 @@ async function apiFetch(path, options = {}) {
   return data;
 }
 
+async function loadSecureImage(path, imgEl) {
+  try {
+    const res = await fetch(API + path, {
+      headers: { 'Authorization': 'Bearer ' + currentUser.token }
+    });
+    if (!res.ok) {
+      imgEl.replaceWith(document.createTextNode('Image unavailable'));
+      return;
+    }
+    const blob = await res.blob();
+    imgEl.src = URL.createObjectURL(blob);
+  } catch {
+    imgEl.replaceWith(document.createTextNode('Image unavailable'));
+  }
+}
+
+async function viewFullPaymentImage(paymentId) {
+  openModal('<div class="modal-title">Payment Screenshot</div><div class="tc"><img id="full-payment-img" style="max-width:100%;border-radius:8px" alt="Loading..."></div>');
+  const img = document.getElementById('full-payment-img');
+  await loadSecureImage('/orders/payments/' + paymentId + '/image', img);
+}
+
 function escapeHtml(value) {
   return String(value == null ? '' : value).replace(/[&<>"']/g, (char) => {
     return {
@@ -3179,6 +3201,38 @@ function previewSelectedImage(input) {
   };
   reader.readAsDataURL(file);
 }
+
+
+function handlePaymentScreenshotSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const maxDim = 1000;
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+        else { w = Math.round((w * maxDim) / h); h = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.75);
+
+      document.getElementById('payment-screenshot-data').value = compressed;
+      const preview = document.getElementById('payment-screenshot-preview');
+      preview.innerHTML = `<img src="${compressed}" alt="Payment screenshot preview">`;
+      preview.classList.remove('hidden');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+  
 
 function updateApPreview() {
   const caseprice = parseFloat(document.getElementById('ap-caseprice').value);
@@ -4213,14 +4267,22 @@ async function renderAuditLogs(el) {
                   <td>₹${p.amountPaid != null ? p.amountPaid : '—'}</td>
                   <td>${escapeHtml(p.uploadedBy)}</td>
                   <td style="font-size:12px">${fmt(p.uploadedAt)}</td>
-                  <td>${p.screenshotUrl
-                    ? '<a href="' + escapeHtml(p.screenshotUrl) + '" target="_blank" rel="noopener"><img src="' + escapeHtml(p.screenshotUrl) + '" style="max-width:80px;max-height:60px;border-radius:4px;border:1px solid var(--border);cursor:pointer" onerror="this.style.display=&apos;none&apos;"></a>'
-                    : '—'}</td>
+                  <td>${p.hasScreenshot
+                    ? `<img id="pay-thumb-${p.id}" alt="Loading..." style="max-width:80px;max-height:60px;border-radius:4px;border:1px solid var(--border);cursor:pointer;background:var(--surface-2)" onclick="viewFullPaymentImage(${p.id})">`
+                    : '<span class="muted small">Expired</span>'}</td>
                 </tr>`).join('')}
             </tbody>
           </table>
         </div>` : ''}`;
       window.__tab = t => { tab = t; draw(); };
+      if (tab === 'payments') {
+        payments.forEach(p => {
+          if (p.hasScreenshot) {
+            const img = document.getElementById('pay-thumb-' + p.id);
+            if (img) loadSecureImage('/orders/payments/' + p.id + '/image', img);
+          }
+        });
+      }
     };
     draw();
   } catch (e) { el.innerHTML = errState(e.message); }
@@ -4453,10 +4515,15 @@ function openUpload(o) {
       <span>Deliverable Total</span>
       <span id="delivered-total-display" style="color:var(--accent)">₹${Number(o.total).toFixed(2)}</span>
     </div>
-    <p class="muted small mb-16">Upload your screenshot to <a href="https://imgbb.com" target="_blank" rel="noopener" style="color:var(--accent)">imgbb.com</a> or <a href="https://podu.pics" target="_blank" rel="noopener" style="color:var(--accent)">podu.pics</a> and paste the direct image link below.</p>
     <div class="form-group">
-      <label>Screenshot URL</label>
-      <input type="url" id="screenshot-url-input" placeholder="https://i.ibb.co/..." style="width:100%">
+      <label>Payment Screenshot</label>
+      <div class="upload-zone" id="payment-upload-zone">
+        <input type="file" id="payment-screenshot-file" accept="image/*" capture="environment" onchange="handlePaymentScreenshotSelect(this)">
+        <div class="upload-zone-icon">📷</div>
+        <p>Tap to take a photo or choose from your gallery</p>
+      </div>
+      <div class="upload-preview hidden" id="payment-screenshot-preview"></div>
+      <input type="hidden" id="payment-screenshot-data">
     </div>
     <div class="form-group mt-16">
       <label>Amount shown in screenshot</label>
@@ -4485,8 +4552,7 @@ function updateDeliveredTotal() {
 
 async function completeOrder(oid) {
   try {
-    const urlInput = document.getElementById('screenshot-url-input');
-    const screenshotUrl = urlInput ? urlInput.value.trim() : '';
+    const screenshotBase64 = document.getElementById('payment-screenshot-data')?.value || '';
     const screenshotAmountInput = document.getElementById('payment-screenshot-amount');
     const screenshotAmount = screenshotAmountInput ? Number(screenshotAmountInput.value.trim()) : NaN;
     const descriptionInput = document.getElementById('delivery-description');
@@ -4497,12 +4563,8 @@ async function completeOrder(oid) {
       deliveredQty: Math.max(0, parseInt(inp.value) || 0)
     }));
 
-    if (!screenshotUrl) {
-      toast('Paste the screenshot URL first.', 'err');
-      return;
-    }
-    try { new URL(screenshotUrl); } catch {
-      toast('Please enter a valid URL.', 'err');
+    if (!screenshotBase64) {
+      toast('Please attach the payment screenshot first.', 'err');
       return;
     }
     if (!screenshotAmount || screenshotAmount <= 0) {
@@ -4517,17 +4579,12 @@ async function completeOrder(oid) {
     await apiFetch('/orders/' + oid + '/payment-screenshot', {
       method: 'PATCH',
       body: JSON.stringify({
-        screenshotUrl,
+        screenshotBase64,
         amountPaid: screenshotAmount,
         deliveredItems,
         description
       })
     });
-    clearTimers(); dismissPopup(); closeModal();
-    toast('Order completed and saved.', 'ok');
-    navigateTo('my-deliveries');
-  } catch (e) { toast(e.message, 'err'); }
-}
 
 
 /* ______________________________________________________
