@@ -3065,14 +3065,6 @@ function buildClockHTML() {
 }
 
   
-function pickClockHour(n) {
-  _selectedHour = n;
-  _clockMode = 'minute';
-  openModal(buildClockHTML());
-  // Focus the minute input after render
-  setTimeout(() => { const el = document.getElementById('minute-input'); if(el) el.focus(); }, 50);
-}
-
 function pickClockValue(n) {
   if (_clockMode === 'hour') {
     _selectedHour = n;
@@ -3155,7 +3147,7 @@ function openProductFormModal(product = null) {
     </div>
     <div class="divider"></div>
     <div id="ap-preview" class="muted small">${isEdit && product.casePrice ? `Per-unit price: <strong style="color:var(--text)">₹${product.price}</strong>` : 'Fill in case price and pieces to see the per-unit price.'}</div>
-    <button class="btn btn-primary btn-full mt-16" onclick="submitProductForm(${isEdit ? `'${escapeHtml(product.id)}'` : 'null'})">
+    <button class="btn btn-primary btn-full mt-16" onclick="this.disabled=true; submitProductForm(${isEdit ? `'${escapeHtml(product.id)}'` : 'null'}, this)">
       ${isEdit ? 'Save Changes' : 'Add Product'}
     </button>
   `);
@@ -3246,16 +3238,16 @@ function updateApPreview() {
   preview.innerHTML = `Per-unit price: <strong style="color:var(--text)">₹${perUnit}</strong> &nbsp;(₹${caseprice} ÷ ${pieces} pcs)`;
 }
 
-async function submitProductForm(existingId) {
+async function submitProductForm(existingId, btn) {
   const name      = document.getElementById('ap-name').value.trim();
   const caseprice = parseFloat(document.getElementById('ap-caseprice').value);
   const pieces    = parseInt(document.getElementById('ap-pieces').value);
   const img       = document.getElementById('ap-img').value.trim();
 
-  if (!name) { toast('Enter a product name', 'err'); return; }
-  if (!caseprice || caseprice <= 0) { toast('Enter a valid case price', 'err'); return; }
-  if (!pieces || pieces < 1) { toast('Enter how many pieces are in one case', 'err'); return; }
-  if (!img) { toast('Please upload a product image', 'err'); return; }
+  if (!name) { if (btn) btn.disabled = false; toast('Enter a product name', 'err'); return; }
+  if (!caseprice || caseprice <= 0) { if (btn) btn.disabled = false; toast('Enter a valid case price', 'err'); return; }
+  if (!pieces || pieces < 1) { if (btn) btn.disabled = false; toast('Enter how many pieces are in one case', 'err'); return; }
+  if (!img) { if (btn) btn.disabled = false; toast('Please upload a product image', 'err'); return; }
 
   const perUnit = Math.round((caseprice / pieces) * 100) / 100;
 
@@ -3284,6 +3276,7 @@ async function submitProductForm(existingId) {
     navigateTo('add-product'); // Redraw the product list view
   } catch (err) {
     console.error(err);
+    if (btn) btn.disabled = false;
     toast(err.message, 'err');
   }
 }
@@ -4081,19 +4074,19 @@ function openCrewFormModal(crew = null) {
       <label>PIN (6 digits)</label>
       <input type="password" id="cf-pin" maxlength="6" inputmode="numeric" placeholder="${isEdit ? 'Leave blank to keep current PIN' : 'e.g. 482196'}">
     </div>
-    <button class="btn btn-primary btn-full mt-16" onclick="submitCrewForm(${isEdit ? `'${safeCrewId}'` : 'null'})">
+    <button class="btn btn-primary btn-full mt-16" onclick="this.disabled=true; submitCrewForm(${isEdit ? `'${safeCrewId}'` : 'null'}, this)">
       ${isEdit ? 'Save Changes' : 'Add Crew Member'}
     </button>
   `);
 }
 
-async function submitCrewForm(existingCrewId) {
+async function submitCrewForm(existingCrewId, btn) {
   const name = document.getElementById('cf-name').value.trim();
   const pin  = document.getElementById('cf-pin').value.trim();
 
-  if (!name) { toast('Enter the crew member\'s name', 'err'); return; }
-  if (!existingCrewId && pin.length !== 6) { toast('Enter a 6-digit PIN', 'err'); return; }
-  if (pin && pin.length !== 6) { toast('PIN must be exactly 6 digits', 'err'); return; }
+  if (!name) { if (btn) btn.disabled = false; toast('Enter the crew member\'s name', 'err'); return; }
+  if (!existingCrewId && pin.length !== 6) { if (btn) btn.disabled = false; toast('Enter a 6-digit PIN', 'err'); return; }
+  if (pin && pin.length !== 6) { if (btn) btn.disabled = false; toast('PIN must be exactly 6 digits', 'err'); return; }
 
   try {
     if (existingCrewId) {
@@ -4108,7 +4101,7 @@ async function submitCrewForm(existingCrewId) {
     closeModal();
     await loadCrew();
     navigateTo('crew-mgmt');
-  } catch (e) { toast(e.message, 'err'); }
+  } catch (e) { if (btn) btn.disabled = false; toast(e.message, 'err'); }
 }
 
 async function deleteCrew(crewId) {
@@ -4401,7 +4394,7 @@ function orderCard(o, viewer) {
   if (viewer === 'crew') {
     const orderJson = JSON.stringify(o).replace(/'/g, "&apos;");
     if (status === 'pending') {
-      actions = `<button class="btn btn-green btn-sm" onclick="acceptOrder('${escapeHtml(o.id)}')">Accept Order</button>
+      actions = `<button class="btn btn-green btn-sm" onclick="this.disabled=true; acceptOrder('${escapeHtml(o.id)}', this)">Accept Order</button>
         <button class="btn btn-outline btn-sm" onclick='downloadOrderSlip(${orderJson})'>Download</button>`;
     } else if (status === 'accepted' && o.assignedCrewId === currentUser.crewId) {
       actions = `<button class="btn btn-outline btn-sm" onclick='downloadOrderSlip(${orderJson})'>Download</button>
@@ -4459,13 +4452,13 @@ function orderCard(o, viewer) {
 /* ════════════════════════════════════════════════════════
    ACCEPT + REMINDER CYCLE
 ════════════════════════════════════════════════════════ */
-async function acceptOrder(oid) {
+async function acceptOrder(oid, btn) {
   try {
     await apiFetch('/orders/' + oid + '/accept', { method: 'PATCH' });
     startReminders(oid);
     toast('Order accepted. Check-in reminders set.', 'ok');
     navigateTo('pending-orders');
-  } catch (e) { toast(e.message, 'err'); }
+  } catch (e) { if (btn) btn.disabled = false; toast(e.message, 'err'); }
 }
 
 function startReminders(oid) {
@@ -4670,17 +4663,17 @@ function openAssign(oid) {
       <label>Select crew member</label>
       <select id="asgn-sel">${opts || '<option value="">No crew available</option>'}</select>
     </div>
-    <button class="btn btn-primary btn-full" onclick="doAssign('${escapeHtml(oid)}')">Confirm Assignment</button>
+    <button class="btn btn-primary btn-full" onclick="this.disabled=true; doAssign('${escapeHtml(oid)}', this)">Confirm Assignment</button>
   `);
 }
 
-async function doAssign(oid) {
+async function doAssign(oid, btn) {
   const crewId = document.getElementById('asgn-sel').value;
-  if (!crewId) { toast('Select a crew member', 'err'); return; }
+  if (!crewId) { if (btn) btn.disabled = false; toast('Select a crew member', 'err'); return; }
   try {
     await apiFetch('/orders/' + oid + '/assign', { method: 'PATCH', body: JSON.stringify({ crewId }) });
     closeModal(); toast('Crew assigned.', 'ok'); navigateTo('all-orders');
-  } catch (e) { toast(e.message, 'err'); }
+  } catch (e) { if (btn) btn.disabled = false; toast(e.message, 'err'); }
 }
 
 async function openDetail(oid) {
@@ -5218,9 +5211,6 @@ async function downloadDailyReport() {
     btn.textContent = 'Download Report (.xlsx)';
   }
 }
-
-window.__fs  = () => {};
-window.__tab = () => {};
 </script>
 </body>
 </html>
