@@ -4850,11 +4850,10 @@ function toast(msg, type='') {
   d.textContent = msg;
   document.body.appendChild(d);
   d.style.position = 'fixed';
-  d.style.top = '16px';
-  d.style.left = '50%';
-  d.style.transform = 'translateX(-50%)';
+  d.style.bottom = '16px';
+  d.style.right = '16px';
   d.style.zIndex = '2147483647';
-  d.style.maxWidth = 'calc(100% - 32px)';
+  d.style.maxWidth = 'min(320px, calc(100% - 32px))';
   setTimeout(() => d.remove(), 5000);
 }
 
