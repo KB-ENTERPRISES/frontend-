@@ -2058,7 +2058,7 @@ input:focus, select:focus, textarea:focus {
         <input type="tel" id="u-sphone" placeholder="10-digit mobile number" inputmode="numeric" maxlength="10" autocomplete="tel"
             oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,10)">
         </div>
-        <div class="form-group"><label>Password</label><div class="password-field"><input type="password" id="u-spass" placeholder="Min 8 chars, incl. a number or symbol" autocomplete="new-password"><button type="button" class="password-toggle" onclick="togglePasswordVisibility('u-spass', this)" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></div></div>
+        <div class="form-group"><label>Password</label><div class="password-field"><input type="password" id="u-spass" placeholder="Create a password" autocomplete="new-password"><button type="button" class="password-toggle" onclick="togglePasswordVisibility('u-spass', this)" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></div><div class="muted small" style="margin-top:6px;">Minimum 8 characters, including at least one number or symbol.</div></div>
         
         <div class="form-group">
           <label>Role</label>
