@@ -2715,7 +2715,10 @@ async function loginAs(role) {
     await loadCrew();
     launchApp();
     resumeGuestIntent();
-  } catch (e) { toast(e.message || 'Login failed', 'err'); }
+  } catch (e) {
+  alert('LOGIN ERROR: ' + (e.message || 'Login failed'));
+  toast(e.message || 'Login failed', 'err');
+}
 }
 
 // If the guest had items in their cart or wanted a specific page, restore it after login.
