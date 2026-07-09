@@ -2715,10 +2715,7 @@ async function loginAs(role) {
     await loadCrew();
     launchApp();
     resumeGuestIntent();
-  } catch (e) {
-  alert('LOGIN ERROR: ' + (e.message || 'Login failed'));
-  toast(e.message || 'Login failed', 'err');
-}
+  } catch (e) { toast(e.message || 'Login failed', 'err'); }
 }
 
 // If the guest had items in their cart or wanted a specific page, restore it after login.
@@ -4851,10 +4848,15 @@ function toast(msg, type='') {
   const d = document.createElement('div');
   d.className = 'toast ' + type;
   d.textContent = msg;
-  document.getElementById('toast-wrap').appendChild(d);
+  document.body.appendChild(d);
+  d.style.position = 'fixed';
+  d.style.top = '16px';
+  d.style.left = '50%';
+  d.style.transform = 'translateX(-50%)';
+  d.style.zIndex = '2147483647';
+  d.style.maxWidth = 'calc(100% - 32px)';
   setTimeout(() => d.remove(), 5000);
 }
-
 
 
 /*   phone number copyting option in the crew page    */
